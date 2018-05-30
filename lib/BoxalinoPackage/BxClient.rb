@@ -389,7 +389,7 @@ module BoxalinoPackage
 		
 		def getThriftChoiceRequest(ssize=0)
 			
-			if(@chooseRequests.size == 0 && @autocompleteRequests.size > 0) 
+			if(@chooseRequests.size == 0 && @autocompleteRequests != nil && @autocompleteRequests.size > 0) 
 				@sessionid = getSessionAndProfile()[0]
 				@profileid = getSessionAndProfile()[1]
 				userRecord = getUserRecord()
