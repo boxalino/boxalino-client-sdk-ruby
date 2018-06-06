@@ -5,7 +5,7 @@ module BoxalinoPackage
     require 'rubygems'
     require 'zip'
     require 'tmpdir'
-    require 'FileUtils'
+    #require 'FileUtils'
     require 'open-uri'
 
     class BxData
@@ -706,9 +706,9 @@ module BoxalinoPackage
 
             zipFilePath = temporaryFilePath + '/' + nname;
 
-            if (File.file?(zipFilePath)) 
-                FileUtils.rm(zipFilePath)
-            end
+            #if (File.file?(zipFilePath)) 
+             #   FileUtils.rm(zipFilePath)
+            #end
 
             files = getFiles()
 
