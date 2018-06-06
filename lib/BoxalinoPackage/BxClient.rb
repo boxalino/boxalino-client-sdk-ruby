@@ -1,7 +1,14 @@
 module BoxalinoPackage
 	class BxClient
 		require 'BoxalinoPackage/p13n_service'
+		require 'BoxalinoPackage/thrift'
+		require 'BoxalinoPackage/p13n_service'
 		require 'pp'
+		require 'securerandom'
+		require 'base64'
+
+
+
 		 @isTest = nil
 		 @autocompleteRequests = nil
 		 @autocompleteResponses = nil
@@ -10,7 +17,7 @@ module BoxalinoPackage
 		 @chooseResponses = nil
 		 @bundleChooseRequests = Array.new
 		VISITOR_COOKIE_TIME = 31536000
-		 _timeout = 2
+		 @_timeout = 2
 		 @requestContextParameters = Array.new
 		
 		 @sessionId = nil
@@ -22,15 +29,17 @@ module BoxalinoPackage
 		 @socketPort = nil
 		 @socketSendTimeout = nil
 		 @socketRecvTimeout = nil
-	     @notifications = Array.new() 
-
-	    def initialize(account, password, domain, isDev=false, host=nil, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil) 
+	     @notifications = Array.new
+		@chooseRequests = Array.new
+	  @request = nil
+	    def initialize(account, password, domain, isDev=false, host=nil, request=nil, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil)
 			@account = account
 			@password = password
 			#To Check Below Line 
 		#	@requestMap = params
 			@isDev = isDev
 			@host = host
+	    @request = request
 			if (@host == nil) 
 				@host = "cdn.bx-cloud.com"
 			end
@@ -59,7 +68,7 @@ module BoxalinoPackage
 				@p13n_password = "tkZ8EXfzeZc6SdXZntCU"
 			end
 			@domain = domain
-			@chooseRequests = Array.new
+			 @chooseRequests = Array.new
 			end
 
 		def setHost(host) 
@@ -122,47 +131,48 @@ module BoxalinoPackage
 		def getSessionAndProfile
 			
 			if (@sessionId != nil && @profileId != nil) 
-				return Array.new(@sessionId, @profileId)
-			end
-			
-			if (cookies[:cems] == nil) 
-				@sessionId = session[:id]
-			else 
-				@sessionId = cookies[:cems]
-			end
+				return [@sessionId, @profileId]
+	    end
+	    @sessionId = SecureRandom.hex
 
-			if (cookies[:cemv] == nil) 
-				@profileId = session[:id]
-			else 
-				@profileId = cookies[:cemv]
-			end
+			# if (cookies[:cems] == nil)
+			# 	@sessionId = session[:id]
+			# else
+			# 	@sessionId = cookies[:cems]
+			# end
+			@profileId = SecureRandom.hex
+			# if (cookies[:cemv] == nil)
+			# 	@profileId = session[:id]
+			# else
+			# 	@profileId = cookies[:cemv]
+			# end
 			# Refresh cookies
-			if (@domain == nil) 
-				cookies[:cems] = @sessionId
-				cookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now } 
-			else 
-				cookies[:cems] =  {:value => @sessionId, :expire =>0 , :path=> '/', :domain => @domain}
-				cookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now , :path=> '/', :domain => @domain} 
-			end
+			# if (@domain == nil)
+			# 	cookies[:cems] = @sessionId
+			# 	cookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now }
+			# else
+			# 	cookies[:cems] =  {:value => @sessionId, :expire =>0 , :path=> '/', :domain => @domain}
+			# 	cookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now , :path=> '/', :domain => @domain}
+			# end
 			
-			return Array.new(@sessionId, @profileId)
+			return [@sessionId, @profileId]
 		end
 
 		def getUserRecord
-			@userRecord = new UserRecord()
+			@userRecord = UserRecord.new()
 			@userRecord.username = getAccount()
-			P13nTHttpClient()
 			return @userRecord
 		end
 		
 		
 		def getP13n(timeout=2, useCurlIfAvailable=true)
-			
-			
-			transport = HTTPClientTransport.new(@host, @port, @uri, @schema)
-			transport.setAuthorization(@p13n_username, @p13n_password)
-			transport.setTimeoutSecs(timeout)
-			client = P13nServiceClient.new(netransport)
+	   #, @port, @uri, @schema
+	   #Thrift::Transport
+			transport = Thrift::HTTPClientTransport.new(@schema+"://"+@host+@uri, {} )
+			transport.add_headers({'Authorization'=>'Basic '+Base64.encode64(@p13n_username + ':'+ @p13n_password)})
+			#transport.setTimeoutSecs(timeout)
+
+			client = P13nService::Client.new(Thrift::CompactProtocol.new(transport))
 			transport.open()
 			return client
 		end
@@ -176,7 +186,7 @@ module BoxalinoPackage
 			
 			choiceRequest.userRecord = getUserRecord()
 			choiceRequest.profileId = @profileid
-			choiceRequest.inquiries = @inquiries
+			choiceRequest.inquiries = inquiries
 			if (requestContext == nil) 
 				requestContext = getRequestContext()
 			end
@@ -186,20 +196,20 @@ module BoxalinoPackage
 		end
 		
 		def   getIP
-			@ip = request.remote_ip;
+			@ip = @request.remote_ip;
 			return @ip
 		end
 
 		def getCurrentURL
-			@protocol = request.protocol
-			@hostname = request.host
-			@requesturi = request.url
+			@protocol = @request.protocol
+			@hostname = @request.host
+			@requesturi = @request.url
 			
 			if(@hostname == "") 
 				return ""
 			end
-
-			return @protocol + '://' + @hostname + @requesturi
+	    #return @protocol + '://' + @hostname + @requesturi
+			return @requesturi
 		end
 		
 		def forwardRequestMapAsContextParameters(filterPrefix = '', setPrefix = '')
@@ -228,55 +238,65 @@ module BoxalinoPackage
 
 		def getBasicRequestContextParameters
 			@sessionid = getSessionAndProfile()[0]
-			@profileid = getSessionAndProfile()[1]
-			return Array.new({
-				:'User-Agent'	 => Array.new(request.env['HTTP_USER_AGENT']),
-				:'User-Host'	  => Array.new(getIP()),
-				:'User-SessionId' => Array.new(@sessionid),
-				:'User-Referer'   => Array.new(request.referer),
-				:'User-URL'	   => Array.new(getCurrentURL())
-			})
+
+	    @profileid = getSessionAndProfile()[1]
+
+
+	    return {
+				'User-Agent'	 => 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36',
+				'User-Host'	  => getIP(),
+				'User-SessionId' => @sessionid,
+				'User-Referer'   => getCurrentURL(),
+			  'User-URL'	   => getCurrentURL()
+			}
 		end
 
 		def getRequestContextParameters
 			@params = @requestContextParameters
 			@chooseRequests.each do |request|
-				request.getRequestContextParameters().each do  |k , v|
-					if (!v.kind_of?(Array)) 
-						v = Array.new(v)
-					end
-					@params[k] = v
-				end
+	      if(!request.getRequestContextParameters().nil?)
+	        request.getRequestContextParameters().each do  |k , v|
+	          if (!v.kind_of?(Array))
+	            v = Array.new(v)
+	          end
+	          @params[k] = v
+	        end
+	      end
 			end
-			return $params;
+			return @params
 		end
 
 		def getRequestContext
 
 			requestContext = RequestContext.new()
 			requestContext.parameters = getBasicRequestContextParameters()
-			getRequestContextParameters().each do |k,v|
-				requestContext.parameters[k] = v
-			end
+	    if(!getRequestContextParameters().nil?)
+	      getRequestContextParameters().each do |k,v|
+	        requestContext.parameters[k] = v
+	      end
+	    end
+	    if(!@requestMap.nil?)
+	      if (@requestMap['p13nRequestContext'].kind_of?(Array))
+	        tempArray = @requestMap['p13nRequestContext']
+	        requestContext.parameters = tempArray.merge(requestContext.parameters)
 
-			if (@requestMap['p13nRequestContext'].kind_of?(Array)) 
-				tempArray = @requestMap['p13nRequestContext'];
-				requestContext.parameters = tempArray.merge(requestContext.parameters)
-				
-			end
-
-			return requestContext;
+	      end
+	    end
+			return requestContext
 		end
 
-		def  throwCorrectP13nException(e) 
-			if(e.getMessage().index( 'Could not connect ') != nil) 
+		def  throwCorrectP13nException(e)
+	    e
+
+
+			if(e.to_s.index( 'Could not connect ') != nil)
 				raise 'The connection to our server failed even before checking your credentials. This might be typically caused by 2 possible things: wrong values in host, port, schema or uri (typical value should be host=cdn.bx-cloud.com, port=443, uri =/p13n.web/p13n and schema=https, your values are : host=' + @host + ', port=' + @port + ', schema=' + @schema + ', uri=' + @uri + '). Another possibility, is that your server environment has a problem with ssl certificate (peer certificate cannot be authenticated with given ca certificates), which you can either fix, or avoid the problem by adding the line "curl_setopt(self::$curlHandle, CURLOPT_SSL_VERIFYPEER, false);" in the file "lib\Thrift\Transport\P13nTCurlClient" after the call to curl_init in the function flush. Full error message=' + e.getMessage()
 			end
-			if( e.getMessage().index(  'Bad protocol id in TCompact message') !=nil) 
+			if( e.to_s.index(  'Bad protocol id in TCompact message') !=nil)
 				raise 'The connection to our server has worked, but your credentials were refused. Provided credentials username=' + @p13n_username + ', password=' + @p13n_password + '. Full error message=' + e.getMessage()
 			end
-			if(e.getMessage().index('choice not found') != nil) 
-				msg = e.getMessage()
+			if(e.to_s.index('choice not found') != nil)
+				msg = e.to_s
 				parts = msg.split('choice not found')
 				pieceMsg  = parts[0]
 				pieces = pieceMsg.split(' at ')
@@ -285,12 +305,12 @@ module BoxalinoPackage
 				raise "Configuration not live on account " + getAccount() + ": choice $choiceId doesn't exist. NB: If you get a message indicating that the choice doesn't exist, go to http://intelligence.bx-cloud.com, log in your account and make sure that the choice id you want to use is published."
 			end
 
-			if(e.getMessage().index('Solr returned status 404') !=nil) 
+			if(e.to_s.index('Solr returned status 404') !=nil)
 				raise "Data not live on account " + getAccount() + ": index returns status 404. Please publish your data first, like in example backend_data_basic.php."
 			end
 
-			if( e.getMessage().index('undefined field') != nil) 
-				msg = e.getMessage()
+			if( e.to_s.index('undefined field') != nil)
+				msg = e.to_s
 				parts = msg.split('undefined field')
 				piecesMsg = parts[1]
 				pieces = piecesMsg.split(' at ')
@@ -298,14 +318,15 @@ module BoxalinoPackage
 				field[":"] = ""
 				raise "You request in your filter or facets a non-existing field of your account " + getAccount() + ": field $field doesn't exist."
 			end
-			if(e.getMessage().index('All choice variants are excluded') != nil) 
+			if(e.to_s.index('All choice variants are excluded') != nil)
 				raise "You have an invalid configuration for with a choice defined, but having no defined strategies. This is a quite unusual case, please contact support@boxalino.com to get support."
 			end
-			raise e
+			raise e.to_s
 		end
 
 		def p13nchoose(choiceRequest) 
 			begin
+	     # getP13n(@_timeout)
 				choiceResponse = getP13n(@_timeout).choose(choiceRequest)
 				#if($_REQUEST['dev_bx_debug'] == 'true'){
 	            #    $this->addNotification('bxRequest', $choiceRequest);
@@ -345,7 +366,7 @@ module BoxalinoPackage
 		def addRequest(request) 
 			request.setDefaultIndexId(getAccount())
 			request.setDefaultRequestMap(@requestMap)
-			@chooseRequests.insert(request)
+	   	@chooseRequests.push(request)
 		end
 		
 		def addBundleRequest(requests) 
@@ -357,8 +378,8 @@ module BoxalinoPackage
 	    end
 
 		def resetRequests
-			@chooseRequests = Array.new()
-			@bundleChooseRequests = Array.new()
+			@chooseRequests = Array.new
+			@bundleChooseRequests = Array.new
 		end
 		
 		def getRequest(iindex=0) 
@@ -392,7 +413,7 @@ module BoxalinoPackage
 			if(@chooseRequests.size == 0 && @autocompleteRequests.size > 0) 
 				@sessionid = getSessionAndProfile()[0]
 				@profileid = getSessionAndProfile()[1]
-				userRecord = getUserRecord()
+				@userRecord = getUserRecord()
 				tempArray = autocompleteRequests()
 				@p13nrequests = tempArray.map { |request| request.getAutocompleteThriftRequest(@profileid, @userRecord) }
 				return @p13nrequests
@@ -406,13 +427,14 @@ module BoxalinoPackage
 				@choiceInquiry.choiceId = request.getChoiceId()
 				if(@isTest == true || (@isDev == true && @isTest == nil)) 
 					@choiceInquiry.choiceId = @choiceInquiry.choiceId + "_debugtest"
-				end
-				@choiceInquiry.simpleSearchQuery = request.getSimpleSearchQuery(getAccount())
+	      end
+	      # getAccount()
+				@choiceInquiry.simpleSearchQuery = request.getSimpleSearchQuery()
 				@choiceInquiry.contextItems = request.getContextItems()
-				@choiceInquiry.minHitCount = request.getMin()
+				@choiceInquiry.minHitCount = request.getMin().to_i
 				@choiceInquiry.withRelaxation = request.getWithRelaxation()
 				
-				choiceInquiries.push(@choiceInquiry)
+				@choiceInquiries.push(@choiceInquiry)
 			end
 
 			@choiceRequest = getChoiceRequest(@choiceInquiries, getRequestContext())

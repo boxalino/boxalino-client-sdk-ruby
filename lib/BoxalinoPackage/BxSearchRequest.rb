@@ -1,12 +1,12 @@
 module BoxalinoPackage
 	require 'BoxalinoPackage/BxRequest'
-	class BxSearchRequest 
+	class BxSearchRequest < BxRequest
 		def initialize(language, queryText, max=10, choiceId=nil)
 		    if (choiceId == nil) 
 				choiceId = 'search'
 			end
-			BxRequest.new(language, choiceId, max, 0)
-			BxRequest.setQueryText(queryText)
+			  _bxRequest = super(language, choiceId, max, 0)
+				setQueryText(queryText)
 		end
 		
 	end

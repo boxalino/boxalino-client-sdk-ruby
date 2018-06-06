@@ -1,5 +1,7 @@
 module BoxalinoPackage
 	require 'BoxalinoPackage/BxRequest'
+	require 'BoxalinoPackage/BxFacets'
+	require 'BoxalinoPackage/BxSortFields'
 	class BxParametrizedRequest < BxRequest
 		
 		@bxReturnFields = ['id']
@@ -109,12 +111,14 @@ module BoxalinoPackage
 
 		def getPrefixedParameters(prefix, checkOtherPrefixes=true) 
 			params = Array.new
-			if(!@requestMap.kind_of?(Array)) 
+			if(!@requestMap.nil? and !@requestMap.kind_of?(Array))
 				return Array.new
 			end
-			@requestMap.each do |k , v|
-				if (matchesPrefix(k, prefix, checkOtherPrefixes)) 
-					params[k[prefix .. -1]] = v
+			if(!@requestMap.nil?)
+				@requestMap.each do |k , v|
+					if (matchesPrefix(k, prefix, checkOtherPrefixes))
+						params[k[prefix .. -1]] = v
+					end
 				end
 			end
 			return params
@@ -148,7 +152,7 @@ module BoxalinoPackage
 					setProductContext(contextItemFieldName, contextItemFieldValue)
 				end
 			end
-			return BxRequest.getContextItems()
+			return super
 		end
 
 	    def getRequestParameterExclusionPatterns
@@ -206,8 +210,8 @@ module BoxalinoPackage
 		end
 		
 		def getFilters
-			filters = BxRequest.getFilters()
-			getPrefixedParameters(requestFiltersPrefix).each do |fieldName , value|
+			filters = super
+			getPrefixedParameters(@requestFiltersPrefix).each do |fieldName , value|
 				negative = false
 				if (value.index('!') == nil) 
 					negative = true;
@@ -219,7 +223,8 @@ module BoxalinoPackage
 		end
 		
 		def getFacets
-			facets = BxRequest.getFacets()
+
+			facets = super
 			if(facets == nil)
 				facets = BxFacets.new()
 			end
@@ -230,7 +235,7 @@ module BoxalinoPackage
 		end
 		
 		def getSortFields
-			sortFields = BxRequest.getSortFields()
+			sortFields = super
 			if (sortFields == nil) 
 				sortFields = BxSortFields.new()
 			end
@@ -241,7 +246,14 @@ module BoxalinoPackage
 		end
 		
 		def getReturnFields
-			return BxRequest.getReturnFields().merge(@bxReturnFields).uniq
+			@returnFields = @@returnFields
+			if (@returnFields == nil)
+				@returnFields = Array.new
+			else
+				@returnFields.push(@bxReturnFields)
+			end
+
+			return @returnFields.uniq
 		end
 		
 		def getAllReturnFields
