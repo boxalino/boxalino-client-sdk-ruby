@@ -13,7 +13,7 @@ module BoxalinoPackage
         @notificationMode = false
 
         def setNotificationMode(mode) 
-            @notificationMode = mode;
+            @notificationMode = mode
             @bxRequests.each do |bxRequest|
                 facet = bxRequest.getFacets()
                 if(facet != nil) 
@@ -312,7 +312,7 @@ module BoxalinoPackage
             return searchResult.totalHitCount
         end
 
-        def areResultsCorrected(choice=null, count=0, maxDistance=10)
+        def areResultsCorrected(choice=nil, count=0, maxDistance=10)
             return getTotalHitCount(choice, false, count) == 0 && getTotalHitCount(choice, true, count, maxDistance) > 0 && areThereSubPhrases() == false
         end
 
