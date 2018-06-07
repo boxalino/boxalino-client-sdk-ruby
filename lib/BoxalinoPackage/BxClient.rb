@@ -6,6 +6,7 @@ module BoxalinoPackage
 		require 'pp'
 		require 'securerandom'
 		require 'base64'
+		require 'BoxalinoPackage/BxChooseResponse'
 
 
 
@@ -95,7 +96,7 @@ module BoxalinoPackage
 		 choiceIdOverwrite = "owbx_choice_id"
 		
 		def getChoiceIdOverwrite
-	        if (requestMap.has_key?(:@choiceIdOverwrite) == true) 
+	        if (@requestMap.has_key?(:@choiceIdOverwrite) == true) 
 	            return requestMap[@choiceIdOverwrite]
 	        end
 	        return nil
@@ -168,7 +169,7 @@ module BoxalinoPackage
 		def getP13n(timeout=2, useCurlIfAvailable=true)
 	   #, @port, @uri, @schema
 	   #Thrift::Transport
-			transport = Thrift::HTTPClientTransport.new(@schema+"://"+@host+@uri, {} )
+			transport = Thrift::HTTPClientTransport.new(@schema+"://"+@host+@uri, {:ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE } )
 			transport.add_headers({'Authorization'=>'Basic '+Base64.encode64(@p13n_username + ':'+ @p13n_password)})
 			#transport.setTimeoutSecs(timeout)
 
@@ -243,11 +244,11 @@ module BoxalinoPackage
 
 
 	    return {
-				'User-Agent'	 => 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36',
-				'User-Host'	  => getIP(),
-				'User-SessionId' => @sessionid,
-				'User-Referer'   => getCurrentURL(),
-			  'User-URL'	   => getCurrentURL()
+				'User-Agent'	 => ['Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36'],
+				'User-Host'	  => [getIP()],
+				'User-SessionId' => [@sessionid],
+				'User-Referer'   => [getCurrentURL()],
+			  'User-URL'	   => [getCurrentURL()]
 			}
 		end
 
@@ -286,14 +287,12 @@ module BoxalinoPackage
 		end
 
 		def  throwCorrectP13nException(e)
-	    e
-
 
 			if(e.to_s.index( 'Could not connect ') != nil)
-				raise 'The connection to our server failed even before checking your credentials. This might be typically caused by 2 possible things: wrong values in host, port, schema or uri (typical value should be host=cdn.bx-cloud.com, port=443, uri =/p13n.web/p13n and schema=https, your values are : host=' + @host + ', port=' + @port + ', schema=' + @schema + ', uri=' + @uri + '). Another possibility, is that your server environment has a problem with ssl certificate (peer certificate cannot be authenticated with given ca certificates), which you can either fix, or avoid the problem by adding the line "curl_setopt(self::$curlHandle, CURLOPT_SSL_VERIFYPEER, false);" in the file "lib\Thrift\Transport\P13nTCurlClient" after the call to curl_init in the function flush. Full error message=' + e.getMessage()
+				raise 'The connection to our server failed even before checking your credentials. This might be typically caused by 2 possible things: wrong values in host, port, schema or uri (typical value should be host=cdn.bx-cloud.com, port=443, uri =/p13n.web/p13n and schema=https, your values are : host=' + @host + ', port=' + @port + ', schema=' + @schema + ', uri=' + @uri + '). Another possibility, is that your server environment has a problem with ssl certificate (peer certificate cannot be authenticated with given ca certificates), which you can either fix, or avoid the problem by adding the line "curl_setopt(self::$curlHandle, CURLOPT_SSL_VERIFYPEER, false);" in the file "lib\Thrift\Transport\P13nTCurlClient" after the call to curl_init in the function flush. Full error message=' + e.to_s
 			end
 			if( e.to_s.index(  'Bad protocol id in TCompact message') !=nil)
-				raise 'The connection to our server has worked, but your credentials were refused. Provided credentials username=' + @p13n_username + ', password=' + @p13n_password + '. Full error message=' + e.getMessage()
+				raise 'The connection to our server has worked, but your credentials were refused. Provided credentials username=' + @p13n_username + ', password=' + @p13n_password + '. Full error message=' + e.to_s
 			end
 			if(e.to_s.index('choice not found') != nil)
 				msg = e.to_s
@@ -332,13 +331,15 @@ module BoxalinoPackage
 	            #    $this->addNotification('bxRequest', $choiceRequest);
 	            #    $this->addNotification('bxResponse', $choiceResponse);
 	            #}
-				if(@requestMap['dev_bx_disp'].kind_of?(Array) ) 
-					puts "<pre><h1>Choice Request</h1>"
-					pp(choiceRequest)
-					puts "<br><h1>Choice Response</h1>"
-					pp(choiceResponse)
-					puts "</pre>"
-					exit
+				if(!@requestMap.nil?)
+					if(@requestMap['dev_bx_disp'].kind_of?(Array) )
+						puts "<pre><h1>Choice Request</h1>"
+						pp(choiceRequest)
+						puts "<br><h1>Choice Response</h1>"
+						pp(choiceResponse)
+						puts "</pre>"
+						exit
+					end
 				end
 				return choiceResponse
 			rescue Exception => e 
@@ -410,7 +411,7 @@ module BoxalinoPackage
 		
 		def getThriftChoiceRequest(ssize=0)
 			
-			if(@chooseRequests.size == 0 && @autocompleteRequests != nil && @autocompleteRequests.size > 0) 
+			if(@chooseRequests.size == 0 && @autocompleteRequests.size > 0) 
 				@sessionid = getSessionAndProfile()[0]
 				@profileid = getSessionAndProfile()[1]
 				@userRecord = getUserRecord()
@@ -520,12 +521,14 @@ module BoxalinoPackage
 		end
 
 		def getNotificationMode
-		    if(!@requestMap['dev_bx_notifications'].nil? && @requestMap['dev_bx_notifications'] == true)
-		    	return true
-		    else
-		    	return false
-		    end
-
+			if(!@requestMap.nil?)
+				if(!@requestMap['dev_bx_notifications'].nil? && @requestMap['dev_bx_notifications'] == true)
+					return true
+				else
+					return false
+				end
+			end
+			return false
 	    end
 		
 		def setAutocompleteRequest(request) 
