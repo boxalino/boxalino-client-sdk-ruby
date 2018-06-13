@@ -23,7 +23,7 @@ module BoxalinoPackage
 	    end
 		
 		def getTextualSuggestions
-			suggestions = Array.new()
+			suggestions = Array.new
 			getResponse().hits.each  do |hit|
 			    if(suggestions.keys[hit.suggestion]) 
 					next
@@ -59,25 +59,30 @@ module BoxalinoPackage
 		end
 		
 		def reOrderSuggestions(suggestions) 
-			queryText = getSearchRequest().getQueryText()
+			queryText = getSearchRequest().getQuerytext()
 			
-			groupNames = Array.new('highlighted-beginning', 'highlighted-not-beginning', 'others')
-			groupValues = Array.new
-			
-			groupNames.each do |k , groupName|
-				if (!groupValues.has(k)) 
-					groupValues[k] = Array.new
+			groupNames = ['highlighted-beginning', 'highlighted-not-beginning', 'others']
+			groupValues = Hash.new
+			k = 0
+			groupNames.each do | groupName|
+				if(!groupValues.empty?)
+					if (!groupValues.key?(k))
+						groupValues[k] = Hash.new
+					end
+				else
+					groupValues[k] = Hash.new
 				end
 				suggestions.each do |suggestion|
 					if (suggestionIsInGroup(groupName, suggestion)) 
 						groupValues[k].push(suggestion)
 					end
 				end
+				k +=1
 			end
 			
 			final = Array.new
 			groupValues.each do |values|
-				values.each do |value|
+				values[1].each do |value|
 					final.push(value)
 				end
 			end
@@ -86,12 +91,14 @@ module BoxalinoPackage
 		end
 		
 		def getTextualSuggestionHit(suggestion) 
-			getResponse().hits.each do |hit|
-				if (hit.suggestion == suggestion) 
-					return hit
+			if(!getResponse().hits.empty?)
+				getResponse().hits.each do |hit|
+					if (hit.suggestion == suggestion)
+						return hit
+					end
 				end
 			end
-			raise "unexisting textual suggestion provided " + suggestion
+			raise "unexisting textual suggestion provided " + suggestion.to_s
 		end
 		
 		def getTextualSuggestionTotalHitCount(suggestion) 
@@ -100,7 +107,7 @@ module BoxalinoPackage
 		end
 		
 		def getSearchRequest
-			return bxAutocompleteRequest.getBxSearchRequest()
+			return @bxAutocompleteRequest.getBxSearchRequest()
 		end
 		
 		def getTextualSuggestionFacets(suggestion) 
@@ -125,7 +132,7 @@ module BoxalinoPackage
 		
 		def getBxSearchResponse(textualSuggestion = nil) 
 			searchResult = textualSuggestion == nil ? getResponse().prefixSearchResult : getTextualSuggestionHit(textualSuggestion).searchResult
-			return BxChooseResponse.new(searchResult, bxAutocompleteRequest.getBxSearchRequest())
+			return BxChooseResponse.new(searchResult, @bxAutocompleteRequest.getBxSearchRequest())
 		end
 		
 		def getPropertyHits(field) 

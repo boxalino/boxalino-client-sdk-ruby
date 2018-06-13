@@ -18,9 +18,10 @@ module BoxalinoPackage
 		@requestParameterExclusionPatterns = Array.new
 		
 		def initialize(language, choiceId, max=10, min=0, bxReturnFields=nil, getItemFieldsCB=nil) 
-			BxRequest.new(language, choiceId, max, min)
-			
-			if (bxReturnFields != nil) 
+			super(language, choiceId, max, min)
+			@choiceId = choiceId
+			@language = language
+			if (!bxReturnFields.nil?)
 				@bxReturnFields = bxReturnFields
 			end
 			@getItemFieldsCB = getItemFieldsCB
@@ -164,7 +165,7 @@ module BoxalinoPackage
 	    end
 
 	    def getRequestContextParameters
-			params = Array.new
+			params = Hash.new
 			getPrefixedParameters(@requestWeightedParametersPrefix).each  do |nname , values|
 				params[nname] = values
 			end
@@ -186,7 +187,8 @@ module BoxalinoPackage
 				end
 				params[nname] = values
 			end
-			params.delete_at(params.index('bxi_data_owner_expert'))
+			params.except!(:bxi_data_owner_expert)
+			#params.delete_at(params.index('bxi_data_owner_expert'))
 			return params
 		end
 		
@@ -258,11 +260,13 @@ module BoxalinoPackage
 		
 		def getAllReturnFields
 			returnFields = getReturnFields()
-			if (@requestMap.key? (@requestReturnFieldsName))
-				tempArray = requestMap[@requestReturnFieldsName] 
-				tempCal  = tempArray.split(',')
-				returnFields = tempCal.merge(returnFields).uniq
-			end
+	    if(!@requestMap.nil?)
+	      if (@requestMap.key?(@requestReturnFieldsName))
+	        tempArray = requestMap[@requestReturnFieldsName]
+	        tempCal  = tempArray.split(',')
+	        returnFields = tempCal.merge(returnFields).uniq
+	      end
+	    end
 			return returnFields
 		end
 		

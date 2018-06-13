@@ -6,7 +6,7 @@ module BoxalinoPackage
 	    require 'json'
 
 		@@returnFields = nil
-	  def initialize(language, choiceId, max=10, min=0)
+	  	def initialize(language, choiceId, max=10, min=0)
 	    	@language, @groupBy, @choiceId, @min, @max, @withRelaxation , @indexId ,	@requestMap , returnFields = Array.new, @indexId
 				@offset = 0
 				@queryText = ""
@@ -139,10 +139,12 @@ module BoxalinoPackage
 		def setIndexId(indexId)
 			@indexId = indexId
 			if @contextItems != nil
-				@contextItems.each do | contextItem, k|
+				k =0
+				@contextItems.each do | contextItem|
 					if contextItem.indexId == nil
-						@contextItems[k]['indexId']= indexId
+						@contextItems[k].indexId = indexId
 					end
+					k += 1
 				end
 			end
 		end
@@ -192,9 +194,8 @@ module BoxalinoPackage
 			if(!_temp.nil?)
 				if (_temp.length >0)
 					searchQuery.filters = Array.new
-					getFilters()
-					getFilters().value each do |filter|
-						searchQuery.filters.push(filter.getThriftFilter())
+					getFilters().each do |filter|
+						searchQuery.filters.push(filter[1].getThriftFilter())
 					end
 				end
 			end
@@ -228,15 +229,15 @@ module BoxalinoPackage
 				contextItem = ContextItem.new()
 				contextItem.indexId = getIndexId()
 				contextItem.fieldName = fieldName
-				contextItem.contextItemId = basketItem['id']
+				contextItem.contextItemId = basketItem[:id]
 				contextItem.role = role
 				@contextItems.push(contextItem)
 				basketContent.each do |basketItem| 
 					contextItem = ContextItem.new()
 					contextItem.indexId = getIndexId()
 					contextItem.fieldName = fieldName
-					contextItem.contextItemId = basketItem['id']
-					contextItem.role = $subRole
+					contextItem.contextItemId = basketItem[:id]
+					contextItem.role = subRole
 					@contextItems.push(contextItem)
 				end
 			end
@@ -262,6 +263,6 @@ module BoxalinoPackage
 		
 		def retrieveHitFieldValues(item, field, items, fields) 
 			return Array.new 
-		end
+		end	
 	end
 end

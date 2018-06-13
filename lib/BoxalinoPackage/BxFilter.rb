@@ -1,6 +1,6 @@
 module BoxalinoPackage
 	class BxFilter
-		
+		require 'BoxalinoPackage/p13n_types'
 		def initialize(fieldName, values=Array.new(), negative = false) 
 			@fieldName = fieldName
 			@values = values
@@ -56,7 +56,7 @@ module BoxalinoPackage
 		end
 		
 		def getThriftFilter
-			filter = Filter()
+			filter = Filter.new()
 	        filter.fieldName = @fieldName
 	        filter.negative = @negative
 	        filter.stringValues = @values

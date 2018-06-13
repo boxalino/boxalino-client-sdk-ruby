@@ -1,10 +1,10 @@
 module BoxalinoPackage
 	class BxSortFields
-
-		@sorts = Array.new
+		require 'BoxalinoPackage/p13n_types'
+		@sorts = Hash.new
 
 	    def  initialize(field=nil, reverse=false)
-	    
+				@sorts = Hash.new
 				if(field)
 					push(field, reverse)
 				end
@@ -38,7 +38,7 @@ module BoxalinoPackage
 		def getThriftSortFields
 			@sortFields = Array.new
 			getSortFields().each do |field|
-				@sortFields.push(SortField(Array.new('fieldName' => field,'reverse' => isFieldReverse(field))))
+				@sortFields.push(SortField.new({'fieldName' => field,'reverse' => isFieldReverse(field)}))
 			end
 			return @sortFields
 		end

@@ -2,11 +2,11 @@ module BoxalinoPackage
 	class BxClient
 		require 'BoxalinoPackage/p13n_service'
 		require 'BoxalinoPackage/thrift'
-		require 'BoxalinoPackage/p13n_service'
 		require 'pp'
 		require 'securerandom'
 		require 'base64'
 		require 'BoxalinoPackage/BxChooseResponse'
+		require 'BoxalinoPackage/BxAutocompleteResponse'
 
 
 
@@ -19,7 +19,7 @@ module BoxalinoPackage
 		 @bundleChooseRequests = Array.new
 		VISITOR_COOKIE_TIME = 31536000
 		 @_timeout = 2
-		 @requestContextParameters = Array.new
+		 @requestContextParameters = Hash.new
 		
 		 @sessionId = nil
 		 @profileId = nil
@@ -31,7 +31,7 @@ module BoxalinoPackage
 		 @socketSendTimeout = nil
 		 @socketRecvTimeout = nil
 	     @notifications = Array.new
-		@chooseRequests = Array.new
+		@chooseRequests = Hash.new
 	  @request = nil
 	    def initialize(account, password, domain, isDev=false, host=nil, request=nil, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil)
 			@account = account
@@ -70,6 +70,7 @@ module BoxalinoPackage
 			end
 			@domain = domain
 			 @chooseRequests = Array.new
+			@requestContextParameters = Hash.new
 			end
 
 		def setHost(host) 
@@ -96,7 +97,7 @@ module BoxalinoPackage
 		 choiceIdOverwrite = "owbx_choice_id"
 		
 		def getChoiceIdOverwrite
-	        if (@requestMap.has_key?(:@choiceIdOverwrite) == true) 
+	        if (@requestMap.has_key?(:@choiceIdOverwrite) == true)
 	            return requestMap[@choiceIdOverwrite]
 	        end
 	        return nil
@@ -233,7 +234,7 @@ module BoxalinoPackage
 		end
 		
 		def resetRequestContextParameter
-			@requestContextParameters = Array.new()
+			@requestContextParameters = Hash.new()
 		end
 
 
@@ -415,7 +416,7 @@ module BoxalinoPackage
 				@sessionid = getSessionAndProfile()[0]
 				@profileid = getSessionAndProfile()[1]
 				@userRecord = getUserRecord()
-				tempArray = autocompleteRequests()
+				tempArray = @autocompleteRequests
 				@p13nrequests = tempArray.map { |request| request.getAutocompleteThriftRequest(@profileid, @userRecord) }
 				return @p13nrequests
 			end
@@ -506,12 +507,13 @@ module BoxalinoPackage
 		end
 		
 		def getResponse(chooseAll=false)
+
 	    _chResponseSize = 0
 	    if not @chooseResponses.nil?
 	      _chResponseSize = @chooseResponses.variants.size
 	    end
 			if( (@chooseResponses == nil || !@chooseResponses.any?) == true)
-				choose()
+				choose(chooseAll)
 			elsif (@size = @chooseRequests.size - _chResponseSize)
 	            choose(chooseAll, @size);
 			end
@@ -521,25 +523,25 @@ module BoxalinoPackage
 		end
 
 		def getNotificationMode
-			if(!@requestMap.nil?)
-				if(!@requestMap['dev_bx_notifications'].nil? && @requestMap['dev_bx_notifications'] == true)
-					return true
-				else
-					return false
+				if(!@requestMap.nil?)
+					if(!@requestMap['dev_bx_notifications'].nil? && @requestMap['dev_bx_notifications'] == true)
+						return true
+					else
+						return false
+					end
 				end
-			end
-			return false
+				return false
 	    end
 		
 		def setAutocompleteRequest(request) 
-			setAutocompleteRequests(Array.new(request))
+			setAutocompleteRequests([request])
 		end
 		
 		def setAutocompleteRequests(requests) 
 			requests.each do |request|
 				enhanceAutoCompleterequest(request)
 			end
-			autocompleteRequests = requests
+			@autocompleteRequests = requests
 		end
 		
 		def enhanceAutoCompleterequest(request) 
@@ -569,7 +571,7 @@ module BoxalinoPackage
 			@profileid = getSessionAndProfile()[1]
 			@userRecord = getUserRecord()
 
-			tempArray = autocompleteRequests()
+			tempArray = @autocompleteRequests
 			@p13nrequests = tempArray.map { |request| request.getAutocompleteThriftRequest(@profileid, @userRecord) }
 			@i = -1
 			
@@ -581,12 +583,12 @@ module BoxalinoPackage
 
 		def autocompletePartail(response, i) 
 			request = @autocompleteRequests[i]
-			return BxAutocompleteResponse.new(response, request)
+			return  BxAutocompleteResponse.new(response, request)
 		end
 			
 		def getAutocompleteResponse
 			responses = getAutocompleteResponses()
-			if(!responses[0].nil?)
+			if(!responses.nil?)
 				return responses[0]
 			end
 			return nil
@@ -594,17 +596,19 @@ module BoxalinoPackage
 		
 
 		def  p13nautocompleteAll(requests) 
-			requestBundle = AutocompleteRequestBundle()
+			requestBundle = AutocompleteRequestBundle.new()
 			requestBundle.requests = requests
 			begin
 				choiceResponse = getP13n(@_timeout).autocompleteAll(requestBundle).responses
-				if(@requestMap['dev_bx_disp'].kind_of?(Array) ) 
-					puts "<pre><h1>Request bundle</h1>"
-					pp(requestBundle)
-					puts "<br><h1>Choice Response</h1>"
-					pp(choiceResponse)
-					puts "</pre>"
-					exit;
+				if(!@requestMap.nil?)
+					if(@requestMap['dev_bx_disp'].kind_of?(Array) )
+						puts "<pre><h1>Request bundle</h1>"
+						pp(requestBundle)
+						puts "<br><h1>Choice Response</h1>"
+						pp(choiceResponse)
+						puts "</pre>"
+						exit;
+					end
 				end
 				return choiceResponse
 			rescue Exception => e 
@@ -615,7 +619,7 @@ module BoxalinoPackage
 
 
 		def getAutocompleteResponses
-			if (!@autocompleteResponses.nil?) 
+			if (@autocompleteResponses.nil?)
 				autocomplete()
 			end
 			return @autocompleteResponses
