@@ -135,7 +135,12 @@ module BoxalinoPackage
             params['filePath'] = filePath
             params['format'] = fformat
              params['type'] = type
-            @sources[container] = Hash.new()
+            if(@sources[container].nil?)
+              @sources[container] = Hash.new()
+            end
+            if(@sources[container][sourceId].nil?)
+              @sources[container][sourceId] = Hash.new()
+            end
             @sources[container][sourceId] = params
             if(validate) 
                 validateSource(container, sourceId)
@@ -583,13 +588,12 @@ module BoxalinoPackage
             if(!ignoreDeltaException && @isDelta)
                 raise "You should not push specifications when you are pushing a delta file. Only do it when you are preparing full files. Set method parameter ignoreDeltaException to true to ignore this exception and publish anyway."
             end
-            doc = File.open('sample_data/properties.xml') { |f| Nokogiri::XML(f) }
+            //doc = File.open('sample_data/properties.xml') { |f| Nokogiri::XML(f) }
             fields = {
                 'username' => @bxClient.getUsername(),
                 'password' => @bxClient.getPassword(),
                 'account' => @bxClient.getAccount(false),
                 'owner' => @owner,
-                #'xml' => doc
                 'xml' => getXML()
             }
 
