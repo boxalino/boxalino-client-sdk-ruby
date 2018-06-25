@@ -228,7 +228,7 @@ module BoxalinoPackage
 
 		def addRequestContextParameter(nname, values) 
 			if (!values.kind_of?(Array)) 
-				values = Array.new(values)
+				values = [values]
 			end
 			@requestContextParameters[nname] = values
 		end

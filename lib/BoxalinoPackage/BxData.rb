@@ -588,7 +588,6 @@ module BoxalinoPackage
             if(!ignoreDeltaException && @isDelta)
                 raise "You should not push specifications when you are pushing a delta file. Only do it when you are preparing full files. Set method parameter ignoreDeltaException to true to ignore this exception and publish anyway."
             end
-            //doc = File.open('sample_data/properties.xml') { |f| Nokogiri::XML(f) }
             fields = {
                 'username' => @bxClient.getUsername(),
                 'password' => @bxClient.getPassword(),
