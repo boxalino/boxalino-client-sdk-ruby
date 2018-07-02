@@ -23,10 +23,12 @@ module BoxalinoPackage
 	    end
 		
 		def getTextualSuggestions
-			suggestions = Array.new
+			suggestions = Hash.new
 			getResponse().hits.each  do |hit|
-			    if(suggestions.keys[hit.suggestion]) 
-					next
+			    if(suggestions.any?)
+		    		if(suggestions[hit.suggestion])
+						next
+					end
 				end
 				suggestions[hit.suggestion] = hit.suggestion
 	        end
@@ -37,15 +39,19 @@ module BoxalinoPackage
 			hit = getTextualSuggestionHit(suggestion)
 			case groupName
 			when 'highlighted-beginning'
-				if hit.highlighted != "" && hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) == nil
-					return true
+				if (!hit.highlighted.nil?)
+        			if( hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) == nil)
+				  		return true
+        			end
 				else
 					return false
 				end
 
 			when 'highlighted-not-beginning'
-				if hit.highlighted != "" && hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) != nil
-					return true
+				if (!hit.highlighted.nil?)
+					if (hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) != nil)
+						return true
+					end
 				else
 					return false
 				end
@@ -93,7 +99,7 @@ module BoxalinoPackage
 		def getTextualSuggestionHit(suggestion) 
 			if(!getResponse().hits.empty?)
 				getResponse().hits.each do |hit|
-					if (hit.suggestion == suggestion)
+					if (hit.suggestion == suggestion[0])
 						return hit
 					end
 				end

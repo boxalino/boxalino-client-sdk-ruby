@@ -198,7 +198,7 @@ module BoxalinoPackage
 		end
 		
 		def   getIP
-			@ip = @request.remote_ip;
+			@ip = @request.remote_ip
 			return @ip
 		end
 
