@@ -316,7 +316,7 @@ module BoxalinoPackage
         raise s "trying to add a field parameter on sourceId 'sourceId', container 'container', fieldName 'fieldName' while this field doesn't exist"
       end
       if (@sources[container][sourceId]['fields'][fieldName]['fieldParameters'] == nil)
-        @sources[container][sourceId]['fields'][fieldName]['fieldParameters'] = Array.new
+        @sources[container][sourceId]['fields'][fieldName]['fieldParameters'] = Hash.new
       end
       @sources[container][sourceId]['fields'][fieldName]['fieldParameters'][parameterName] = parameterValue
     end
