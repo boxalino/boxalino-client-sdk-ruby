@@ -427,14 +427,7 @@ module BoxalinoPackage
                     if (@httpSources == nil)
                       @httpSources = Hash.new()
                     end
-                    if (@httpSources[sourceId] != nil)
-                      xml.location('type' => 'http')
-                      xml.http('name' => 'http') do
-                        @httpSources[sourceId].each do |httpPv, httpPn|
-                          xml.tag!(httpPv, httpPn)
-                        end
-                      end
-                    end
+                    
                   end
 
 
@@ -536,6 +529,14 @@ module BoxalinoPackage
 
                       end
 
+                    end
+                    if (@httpSources[sourceId] != nil)
+                      xml.location('type' => 'http')
+                      xml.http('name' => 'http') do
+                        @httpSources[sourceId].each do |httpPv, httpPn|
+                          xml.tag!(httpPv, httpPn)
+                        end
+                      end
                     end
                   }
                 end
