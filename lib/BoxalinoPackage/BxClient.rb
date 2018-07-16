@@ -33,6 +33,7 @@ module BoxalinoPackage
 	     @notifications = Array.new
 		@chooseRequests = Hash.new
 	  @request = nil
+	  @CustomCookies = nil
 	    def initialize(account, password, domain, isDev=false, host=nil, request=nil, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil)
 			@account = account
 			@password = password
@@ -71,8 +72,12 @@ module BoxalinoPackage
 			@domain = domain
 			 @chooseRequests = Array.new
 			@requestContextParameters = Hash.new
+			@requestMap = Hash.new
+      		@CustomCookies = nil
 			end
-
+		def setCookieContainer(cook)
+      		@CustomCookies = cook
+    	end
 		def setHost(host) 
 		    @host = host
 	    end
@@ -134,28 +139,35 @@ module BoxalinoPackage
 			
 			if (@sessionId != nil && @profileId != nil) 
 				return [@sessionId, @profileId]
-	    end
-	    @sessionId = SecureRandom.hex
+      		end
 
-			# if (cookies[:cems] == nil)
-			# 	@sessionId = session[:id]
-			# else
-			# 	@sessionId = cookies[:cems]
-			# end
-			@profileId = SecureRandom.hex
-			# if (cookies[:cemv] == nil)
-			# 	@profileId = session[:id]
-			# else
-			# 	@profileId = cookies[:cemv]
-			# end
+			if(!@CustomCookies.nil?)
+				if (@CustomCookies[:cems].nil?)
+					@sessionId = SecureRandom.hex
+				else
+					@sessionId = @CustomCookies[:cems]
+				end
+			else
+				@sessionId = SecureRandom.hex
+			end
+
+			if (!@CustomCookies.nil?)
+				if (@CustomCookies[:cemv].nil?)
+					@profileId = SecureRandom.hex
+				else
+					@profileId = @CustomCookies[:cemv]
+				end
+			else
+				@profileId = SecureRandom.hex
+			end
 			# Refresh cookies
-			# if (@domain == nil)
-			# 	cookies[:cems] = @sessionId
-			# 	cookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now }
-			# else
-			# 	cookies[:cems] =  {:value => @sessionId, :expire =>0 , :path=> '/', :domain => @domain}
-			# 	cookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now , :path=> '/', :domain => @domain}
-			# end
+			if (@domain == nil)
+        @CustomCookies[:cems] = @sessionId
+        @CustomCookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now }
+			else
+        @CustomCookies[:cems] =  {:value => @sessionId, :expire =>0 , :path=> '/', :domain => @domain}
+        @CustomCookies[:cemv] =  { :value => @profileId, :expires => 1.year.from_now , :path=> '/', :domain => @domain}
+			end
 			
 			return [@sessionId, @profileId]
 		end
@@ -166,16 +178,14 @@ module BoxalinoPackage
 			return @userRecord
 		end
 		
-		
+		@@transport = nil
 		def getP13n(timeout=2, useCurlIfAvailable=true)
-	   #, @port, @uri, @schema
-	   #Thrift::Transport
-			transport = Thrift::HTTPClientTransport.new(@schema+"://"+@host+@uri, {:ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE } )
-			transport.add_headers({'Authorization'=>'Basic '+Base64.encode64(@p13n_username + ':'+ @p13n_password)})
-			#transport.setTimeoutSecs(timeout)
+	   		if(@@transport == nil)
+				@@transport = Thrift::ReusingHTTPClientTransport.new(@schema+"://"+@host+@uri)
+				@@transport.basic_auth @p13n_username, @p13n_password
+			end
 
-			client = P13nService::Client.new(Thrift::CompactProtocol.new(transport))
-			transport.open()
+			client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
 			return client
 		end
 

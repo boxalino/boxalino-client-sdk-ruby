@@ -509,7 +509,7 @@ module BoxalinoPackage
                     tree = buildTree(facetResponse.values)
                     tree = getSelectedTreeNode(tree)
                     node = getFirstNodeWithSeveralChildren(tree, minCategoryLevel)
-                    if(node) 
+                    if(!node.empty?)
                         node['children'].each do |node|
                             facetValues[node[1].stringValue] = node[1]
                         end
@@ -718,7 +718,7 @@ module BoxalinoPackage
             end
             tree = buildTree(facetResponse.values)
             treeEnd = getSelectedTreeNode(tree)
-            if(treeEnd == nil) 
+            if(treeEnd.empty?) 
                 return Array.new
             end
             if(treeEnd['node'].stringValue == tree['node'].stringValue) 
