@@ -2,6 +2,7 @@ module BoxalinoPackage
 	class BxClient
 		require 'BoxalinoPackage/p13n_service'
 		require 'BoxalinoPackage/thrift'
+		require 'BoxalinoPackage/reusing_http_client_transport'
 		require 'pp'
 		require 'securerandom'
 		require 'base64'
