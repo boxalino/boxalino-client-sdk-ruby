@@ -339,11 +339,11 @@ module BoxalinoPackage
 			begin
 	     # getP13n(@_timeout)
 				choiceResponse = getP13n(@_timeout).choose(choiceRequest)
-				#if($_REQUEST['dev_bx_debug'] == 'true'){
-	            #    $this->addNotification('bxRequest', $choiceRequest);
-	            #    $this->addNotification('bxResponse', $choiceResponse);
-	            #}
 				if(!@requestMap.nil?)
+					if(!@requestMap['dev_bx_debug'].nil? && @requestMap['dev_bx_debug'] == 'true')
+						addNotification('bxRequest', choiceRequest)
+						addNotification('bxResponse', choiceResponse)
+					end
 					if(@requestMap['dev_bx_disp'].kind_of?(Array) )
 						puts "<pre><h1>Choice Request</h1>"
 						pp(choiceRequest)
