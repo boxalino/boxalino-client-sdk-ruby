@@ -14,10 +14,12 @@ module BoxalinoPackage
 
         def setNotificationMode(mode) 
             @notificationMode = mode
-            @bxRequests.each do |bxRequest|
-                facet = bxRequest.getFacets()
-                if(facet != nil) 
-                    facet.setNotificationMode(mode)
+            if(!@bxRequests.nil?  || !@bxRequests.empty?)
+                @bxRequests.each do |bxRequest|
+                    facet = bxRequest.getFacets()
+                    if(facet != nil) 
+                        facet.setNotificationMode(mode)
+                    end
                 end
             end
         end
@@ -27,15 +29,15 @@ module BoxalinoPackage
         end
 
         def addNotification(nname, parameters) 
-            if(@notificationMode) 
-                @notifications.push(Array.new('name'=>nname, 'parameters'=>parameters))
+             if(!@notificationMode.nil? && @notificationMode)
+                @notifications.push(Hash.new({'name'=>nname, 'parameters'=>parameters}))
             end
         end
 
         def getNotifications
             finalNotifications = @notifications
             @bxRequests.each do |bxRequest|
-                finalNotifications.push(Array.new('name'=>'bxFacet', 'parameters'=>bxRequest.getChoiceId()))
+                finalNotifications.push(Hash.new({'name'=>'bxFacet', 'parameters'=>bxRequest.getChoiceId()} ))
                 bxRequest.getFacets().getNotifications().each do |notification|
                     finalNotifications.push(notification)
                 end
@@ -49,16 +51,18 @@ module BoxalinoPackage
 
         def getChoiceResponseVariant(choice=nil, count=0) 
             @k = -1
-            @bxRequests.each do | bxRequest|
-                @k += 1
-                if (choice == nil || choice == bxRequest.getChoiceId()) 
+            if(!@bxRequests.nil?  || !@bxRequests.empty?)
+                @bxRequests.each do | bxRequest|
+                    @k += 1
+                    if (choice.nil? || choice == bxRequest.getChoiceId()) 
 
-                    if (count > 0)
-                        count -= 1
-                        next
+                        if (count > 0)
+                            count -= 1
+                            next
+                        end
+
+                        return getChoiceIdResponseVariant(@k)
                     end
-
-                    return getChoiceIdResponseVariant(@k)
                 end
             end
         end
@@ -66,8 +70,10 @@ module BoxalinoPackage
         def getChoiceIdResponseVariant(id=0) 
             response = getResponse()
             begin
-                if ( response.variants !=''  && !response.variants.nil?)
-                    return response.variants[id-1]
+                if(!response.nil? || !response.empty?)
+                    if ( response.variants !=''  && !response.variants.nil?)
+                        return response.variants[id-1]
+                    end
                 end
             rescue Exception => e
             end
@@ -81,17 +87,19 @@ module BoxalinoPackage
         end
 
         def getFirstPositiveSuggestionSearchResult(variant, maxDistance=10) 
-            if(variant.searchRelaxation.suggestionsResults == nil) 
+            if(variant.searchRelaxation.nil? || variant.searchRelaxation.suggestionsResults.nil? || variant.searchRelaxation.suggestionsResults.empty?)
                 return nil
             end
             variant.searchRelaxation.suggestionsResults.each do |searchResult|
-                if (searchResult.totalHitCount > 0) 
-                    if(searchResult.queryText == "" || variant.searchResult.queryText == "") 
-                        next
-                    end
-                    distance = levenshtein_distance(searchResult.queryText, variant.searchResult.queryText)
-                    if(distance <= maxDistance && distance != -1) 
-                        return searchResult
+                if(!searchResult.totalHitCount.nil?)
+                    if (searchResult.totalHitCount > 0) 
+                        if(searchResult.queryText == "" || variant.searchResult.queryText == "") 
+                            next
+                        end
+                        distance = levenshtein_distance(searchResult.queryText, variant.searchResult.queryText)
+                        if(distance <= maxDistance && distance != -1) 
+                            return searchResult
+                        end
                     end
                 end
             end
@@ -131,17 +139,21 @@ module BoxalinoPackage
         end
         
         def getSearchResultHitVariable(searchResult, hitId, field) 
-            if(searchResult) 
-                if(searchResult.hits) 
+            if(!searchResult.nil? || !searchResult.empty?)
+                if(!searchResult.hits.nil? || !searchResult.hits.empty?)
                     searchResult.hits.each do |item|
-                        if(item.values['id'] == hitId) 
-                            return item.field
+                        if(!item.values.nil? || !item.values.empty?)
+                            if(item.values['id'] == hitId) 
+                                return item.field
+                            end
                         end
                     end
                 elsif(searchResult.key?(:hitsGroups))
-                    searchResult.hitsGroups.each do |hitGroup|
-                        if(hitGroup.groupValue == hitId)
-                            return hitGroup.hits[0].field
+                    if(!searchResult.hitsGroups.nil? || !searchResult.hitsGroups.empty?)
+                        searchResult.hitsGroups.each do |hitGroup|
+                            if(hitGroup.groupValue == hitId)
+                                return hitGroup.hits[0].field
+                            end
                         end
                     end
                 end
@@ -152,13 +164,13 @@ module BoxalinoPackage
         def getSearchResultHitFieldValue(searchResult, hitId, fieldName='')
 
             if (searchResult && fieldName != '') 
-                if(searchResult.hits) 
+                 if(!searchResult.hits.nil? || !searchResult.hits.empty?)
                     searchResult.hits.each do |item|
                         if(item.values['id'] == hitId) 
                             return item.values[fieldName] ? item.values[fieldName][0] : nil
                         end
                     end
-                elsif( searchResult.hitsGroups) 
+                elsif( !searchResult.hitsGroups.nil? || !searchResult.hitsGroups.empty?)
                     searchResult.hitsGroups.each do |hitGroup|
                         if(hitGroup.groupValue == hitId) 
                             return hitGroup.hits[0].values[fieldName] ? hitGroup.hits[0].values[fieldName][0] : nil
@@ -171,15 +183,15 @@ module BoxalinoPackage
         
         def getSearchResultHitIds(searchResult, fieldId='id') 
             ids = Array.new
-            if(searchResult) 
-                if(searchResult.hits)
+            if(!searchResult.nil? || !searchResult.empty?)
+                if(!searchResult.hits.nil? || !searchResult.hits.empty?)
                     searchResult.hits.each do |item|
                         if( item.values[fieldId][0] == nil) 
                             fieldId = 'id'
                         end
                         ids.push(item.values[fieldId][0])
                     end
-                elsif (searchResult.hitsGroups)
+                 elsif (!searchResult.hitsGroups.nil? || !searchResult.hitsGroups.empty?)
                     searchResult.hitsGroups.each do |hitGroup|
                         ids.push(hitGroup.groupValue)
                     end
@@ -219,9 +231,9 @@ module BoxalinoPackage
 
         def getSearchHitFieldValues(searchResult, fields=nil) 
             fieldValues = Hash.new
-            if(searchResult) 
+            if(!searchResult.nil? || !searchResult.nil?)
                 hits = searchResult.hits
-                if(searchResult.hits.empty?)
+                if(searchResult.hits.empty? || searchResult.hits.nil?)
                     hits = Array.new
                     if(searchResult.hitsGroups != nil) 
                         searchResult.hitsGroups.each do |hitGroup|
@@ -231,7 +243,7 @@ module BoxalinoPackage
                 end
                 hits.each do |item|
                     finalFields = fields
-                    if(finalFields == nil) 
+                    if(finalFields.nil?) 
                         finalFields = item.values.keys
                     end
                     finalFields.each do |field|
@@ -253,9 +265,11 @@ module BoxalinoPackage
         end
 
         def getRequestFacets(choice=nil) 
-            if( choice == nil) 
-                if(@bxRequests[0] != nil) 
-                    return @bxRequests[0].getFacets()
+            if( choice.nil?)
+                if(!@bxRequests.nil?)
+                    if(@bxRequests[0] != nil) 
+                        return @bxRequests[0].getFacets()
+                    end
                 end
                 return nil
             end
@@ -273,7 +287,7 @@ module BoxalinoPackage
             searchResult = getVariantSearchResult(variant, considerRelaxation, maxDistance, discardIfSubPhrases)
             facets = getRequestFacets(choice)
 
-            if(facets =="" || searchResult == nil)
+            if(facets =="" || searchResult.nil?)
                 return BxFacets.new()
             end
             facets.setSearchResults(searchResult)
@@ -287,7 +301,7 @@ module BoxalinoPackage
 
         def getFirstHitFieldValue(field=nil, returnOneValue=true, hitIndex=0,choice=nil, count=0, maxDistance=10) 
             fieldNames = nil
-            if(field != nil) 
+            if(!field.nil?) 
                 fieldNames = Array.new(field)
             end
             count = 0
@@ -296,12 +310,14 @@ module BoxalinoPackage
                 if(count < hitIndex)
                     next
                 end
-                fieldValueMap.each do |fieldName , fieldValues|
-                    if(fieldValues.size > 0 ) 
-                        if(returnOneValue) 
-                            return fieldValues[0]
-                        else 
-                            return fieldValues
+                if(!fieldValueMap.nil?)
+                    fieldValueMap.each do |fieldName , fieldValues|
+                        if(fieldValues.size > 0 ) 
+                            if(returnOneValue) 
+                                return fieldValues[0]
+                            else 
+                                return fieldValues
+                            end
                         end
                     end
                 end
@@ -312,8 +328,8 @@ module BoxalinoPackage
         def getTotalHitCount(choice=nil, considerRelaxation=true,count=0, maxDistance=10, discardIfSubPhrases = true) 
             variant = getChoiceResponseVariant(choice, count)
             searchResult = getVariantSearchResult(variant, considerRelaxation, maxDistance, discardIfSubPhrases)
-            if(searchResult == nil)
-                return 0;
+            if(searchResult.nil?)
+                return 0
             end
             return searchResult.totalHitCount
         end
@@ -366,9 +382,11 @@ module BoxalinoPackage
                 return nil
             end
             variant = getChoiceResponseVariant(choice, count)
-            variant.searchRelaxation.subphrasesResults.each do |searchResult|
-                if(searchResult.queryText == queryText) 
-                    return searchResult
+            if(!variant.searchRelaxation.subphrasesResults.nil?)
+                variant.searchRelaxation.subphrasesResults.each do |searchResult|
+                    if(searchResult.queryText == queryText) 
+                        return searchResult
+                    end
                 end
             end
             return nil
@@ -449,7 +467,7 @@ module BoxalinoPackage
         end
 
         def getLanguage(defaultLanguage = 'en') 
-            if(@bxRequests[0]) 
+            if(!@bxRequests[0].nil?)
                 return @bxRequests[0].getLanguage()
             end
             return defaultLanguage

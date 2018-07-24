@@ -38,36 +38,35 @@ module BoxalinoPackage
 	    def initialize(account, password, domain, isDev=false, host=nil, request=nil, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil)
 			@account = account
 			@password = password
-			#To Check Below Line 
 		#	@requestMap = params
 			@isDev = isDev
 			@host = host
 	    @request = request
-			if (@host == nil) 
+			if (@host.nil?) 
 				@host = "cdn.bx-cloud.com"
 			end
 
 			@port = port
-			if(@port == nil) 
+			if(@port.nil?) 
 				@port = 443;
 			end
 			@uri = uri
-			if (@uri == nil) 
+			if (@uri.nil?) 
 				@uri = '/p13n.web/p13n'
 			end
 
 			@schema = schema
-			if(@schema == nil) 
+			if(@schema.nil?) 
 				@schema = 'https'
 			end
 
 			@p13n_username = p13n_username
-			if(@p13n_username == nil) 
+			if(@p13n_username.nil?) 
 				@p13n_username = "boxalino"
 			end
 
 			@p13n_password = p13n_password
-			if(@p13n_password == nil) 
+			if(@p13n_password.nil?) 
 				@p13n_password = "tkZ8EXfzeZc6SdXZntCU"
 			end
 			@domain = domain

@@ -24,13 +24,15 @@ module BoxalinoPackage
 		
 		def getTextualSuggestions
 			suggestions = Hash.new
-			getResponse().hits.each  do |hit|
-			    if(suggestions.any?)
-		    		if(suggestions[hit.suggestion])
-						next
+			if(!getResponse().hits.nil?)
+				getResponse().hits.each  do |hit|
+				    if(suggestions.any?)
+			    		if(suggestions[hit.suggestion])
+							next
+						end
 					end
-				end
-				suggestions[hit.suggestion] = hit.suggestion
+					suggestions[hit.suggestion] = hit.suggestion
+		        end
 	        end
 			return reOrderSuggestions(suggestions)
 		end
@@ -78,9 +80,11 @@ module BoxalinoPackage
 				else
 					groupValues[k] = Hash.new
 				end
-				suggestions.each do |suggestion|
-					if (suggestionIsInGroup(groupName, suggestion)) 
-						groupValues[k].push(suggestion)
+				if(!suggestions.nil?)
+					suggestions.each do |suggestion|
+						if (suggestionIsInGroup(groupName, suggestion)) 
+							groupValues[k].push(suggestion)
+						end
 					end
 				end
 				k +=1
@@ -88,8 +92,10 @@ module BoxalinoPackage
 			
 			final = Array.new
 			groupValues.each do |values|
-				values[1].each do |value|
-					final.push(value)
+				if !values.nil?  && !values[1].nil?
+					values[1].each do |value|
+						final.push(value)
+					end
 				end
 			end
 			
@@ -121,7 +127,7 @@ module BoxalinoPackage
 		
 			facets = getSearchRequest().getFacets()
 
-			if (facets ==nil || facets =="" )
+			if (facets.nil? || facets == "" )
 				return nil
 			end
 			facets.setSearchResults(hit.searchResult)
@@ -137,23 +143,27 @@ module BoxalinoPackage
 		end
 		
 		def getBxSearchResponse(textualSuggestion = nil) 
-			searchResult = textualSuggestion == nil ? getResponse().prefixSearchResult : getTextualSuggestionHit(textualSuggestion).searchResult
+			searchResult = textualSuggestion.nil? ? getResponse().prefixSearchResult : getTextualSuggestionHit(textualSuggestion).searchResult
 			return BxChooseResponse.new(searchResult, @bxAutocompleteRequest.getBxSearchRequest())
 		end
 		
-		def getPropertyHits(field) 
-			getResponse().propertyResults.each do |propertyResult|
-				if (propertyResult.name == field) 
-					return propertyResult.hits
+		def getPropertyHits(field)
+			if(!getResponse().propertyResults.nil? || !getResponse().propertyResults.empty?) 
+				getResponse().propertyResults.each do |propertyResult|
+					if (propertyResult.name == field) 
+						return propertyResult.hits
+					end
 				end
 			end
 			return Array.new
 		end
 		
-		def getPropertyHit(field, hitValue) 
-			getPropertyHits(field).each do |hit|
-				if (hit.value == hitValue) 
-					return hit
+		def getPropertyHit(field, hitValue)
+			if(!getPropertyHits(field).nil? || !getPropertyHits(field).empty?) 
+				getPropertyHits(field).each do |hit|
+					if (hit.value == hitValue) 
+						return hit
+					end
 				end
 			end
 			return nil
@@ -161,15 +171,17 @@ module BoxalinoPackage
 		
 		def getPropertyHitValues(field) 
 			hitValues = Array.new
-			getPropertyHits(field).each do |hit|
-				hitValues.push(hit.value)
+			if(!getPropertyHits(field).nil? || !getPropertyHits(field).empty?)
+				getPropertyHits(field).each do |hit|
+					hitValues.push(hit.value)
+				end
 			end
 			return hitValues
 		end
 		
 		def getPropertyHitValueLabel(field, hitValue) 
 			hit = getPropertyHit(field, hitValue)
-			if (hit != nil) 
+			if (!hit.nil?) 
 				return hit.label
 			end
 			return nil
@@ -177,7 +189,7 @@ module BoxalinoPackage
 		
 		def getPropertyHitValueTotalHitCount(field, hitValue) 
 			hit = getPropertyHit(field, hitValue)
-			if (hit != nil) 
+			if (!hit.nil?) 
 				return hit.totalHitCount
 			end
 			return nil

@@ -86,11 +86,11 @@ module BoxalinoPackage
     end
 
     def addCSVCustomerFile(filePath, itemIdColumn, encoding = 'UTF-8', delimiter = ',', enclosure = "\&", escape = "\\\\", lineSeparator = "\\n", sourceId = nil, container = 'customers', validate = true, maxLength = 23)
-      params = array('itemIdColumn' => itemIdColumn, 'encoding' => encoding, 'delimiter' => delimiter, 'enclosure' => enclosure, 'escape' => escape, 'lineSeparator' => lineSeparator);
+      params = {'itemIdColumn' => itemIdColumn, 'encoding' => encoding, 'delimiter' => delimiter, 'enclosure' => enclosure, 'escape' => escape, 'lineSeparator' => lineSeparator}
       if (sourceId == nil)
-        sourceId = getSourceIdFromFileNameFromPath(filePath, container, maxLength, true);
+        sourceId = getSourceIdFromFileNameFromPath(filePath, container, maxLength, true)
       end
-      return addSourceFile(filePath, sourceId, container, 'item_data_file', 'CSV', params, validate);
+      return addSourceFile(filePath, sourceId, container, 'item_data_file', 'CSV', params, validate)
     end
 
     def addCategoryFile(filePath, categoryIdColumn, parentIdColumn, categoryLabelColumns, encoding = 'UTF-8', delimiter = ',', enclosure = "\&", escape = "\\\\", lineSeparator = "\\n", sourceId = 'resource_categories', container = 'products', validate = true)
@@ -125,7 +125,7 @@ module BoxalinoPackage
       return addSourceFile(filePath, sourceId, container, 'transactions', fformat, params, validate)
     end
 
-    def addSourceFile(filePath, sourceId, container, type, fformat = 'CSV', params = Array.new, validate = true)
+    def addSourceFile(filePath, sourceId, container, type, fformat = 'CSV', params = Hash.new, validate = true)
       if (getLanguages().size == 0)
         raise "trying to add a source before having declared the languages with method setLanguages"
       end
@@ -162,25 +162,27 @@ module BoxalinoPackage
     end
 
     def getSourceCSVRow(container, sourceId, row = 0, maxRow = 2)
-      if (@sources[container][sourceId]['rows'].nil?)
-        begin
-          csv_text = File.read(@sources[container][sourceId]['filePath'])
-          csv = CSV.parse(csv_text, :headers => true)
-          count = 1;
-          @sources[container][sourceId]['rows'] = Array.new
-          csv.each do |row|
-            @sources[container][sourceId]['rows'].push(row)
-            count = count + 1
-            if (count >= maxRow)
-              break
+      if(!@sources[container].nil? && !@sources[container][sourceId].nil?)
+        if (@sources[container][sourceId]['rows'].nil?)
+          begin
+            csv_text = File.read(@sources[container][sourceId]['filePath'])
+            csv = CSV.parse(csv_text, :headers => true)
+            count = 1;
+            @sources[container][sourceId]['rows'] = Array.new
+            csv.each do |row|
+              @sources[container][sourceId]['rows'].push(row)
+              count = count + 1
+              if (count >= maxRow)
+                break
+              end
             end
+          rescue Exception => e
           end
-        rescue Exception => e
         end
-      end
-      if (!@sources[container][sourceId]['rows'].nil?)
-        if (!@sources[container][sourceId]['rows'][row].nil?)
-          return @sources[container][sourceId]['rows'][row]
+        if (!@sources[container][sourceId]['rows'].nil?)
+          if (!@sources[container][sourceId]['rows'][row].nil?)
+            return @sources[container][sourceId]['rows'][row]
+          end
         end
       end
       return nil
@@ -257,11 +259,11 @@ module BoxalinoPackage
       sourceId = decodeSourceKey(sourceKey)[1]
       if (@sources[container][sourceId].present?)
         if (!@sources[container][sourceId]['fields'].present?)
-          @sources[container][sourceId]['fields'] = Hash.new()
+          @sources[container][sourceId]['fields'] = Hash.new
         end
       else
         @sources[container][sourceId] = Hash.new
-        @sources[container][sourceId]['fields'] = Hash.new()
+        @sources[container][sourceId]['fields'] = Hash.new
       end
       @sources[container][sourceId]['fields'][fieldName] = {'type' => type, 'localized' => localized, 'map' => colMap, 'referenceSourceKey' => referenceSourceKey}
       if (@sources[container][sourceId]['format'] == 'CSV')
@@ -333,7 +335,7 @@ module BoxalinoPackage
         password = @bxClient.getPassword()
       end
 
-      params = Array.new
+      params = Hash.new
       params['Host'] = host
       params['Port'] = port
       params['User'] = user
@@ -351,6 +353,9 @@ module BoxalinoPackage
       params['SyncBrowsing'] = syncBrowsing
       container = decodeSourceKey(sourceKey)[0]
       sourceId = decodeSourceKey(sourceKey)[1]
+      if(@ftpSources.nil?)
+        @ftpSources = Hash.new
+      end
       @ftpSources[sourceId] = params
     end
 
@@ -364,7 +369,7 @@ module BoxalinoPackage
         password = @bxClient.getPassword()
       end
 
-      params = Hash.new()
+      params = Hash.new
       params['WebDirectory'] = webDirectory
       params['User'] = user
       params['Pass'] = password
@@ -402,10 +407,11 @@ module BoxalinoPackage
                     if (@ftpSources[sourceId] != nil)
                       xml.source("id" => sourceId, "type" => sourceValues['type'], 'additional_item_source' => sourceValues['additional_item_source']) do
                         xml.location('type' => 'ftp')
-                        xml.ftp('name' => 'ftp')
-                        # @ftpSources[sourceId].each do |ftpPn , ftpPv|
-                        #     ftp->ftpPn = ftpPv
-                        # end
+                        xml.ftp('name'=>'ftp') do
+                          @ftpSources[sourceId].each do | ftpPv , ftpPn|
+                            xml.tag!(ftpPv,ftpPn)
+                          end
+                        end
                       end
                     else
                       #To check Below line
@@ -425,7 +431,7 @@ module BoxalinoPackage
                       end
                     end
                     if (@httpSources == nil)
-                      @httpSources = Hash.new()
+                      @httpSources = Hash.new
                     end
                     
                   end
@@ -779,36 +785,14 @@ module BoxalinoPackage
 
 
       Zip::File.open(zipFilePath, Zip::File::CREATE) do |zipfile|
-        # foreach (files as f => filePath)
-        #     if (!zip->addFile(filePath, f))
-        #         throw new \Exception(
-        #             'Synchronization failure: Failed to add file "' .
-        #             filePath . '" to the zip "' .
-        #             name . '". Please try again.'
-        #         );
-        #     }
-        # }
-
-        # if (!zip->addFromString ('properties.xml', this->getXML()))
-        #     throw new \Exception(
-        #         'Synchronization failure: Failed to add xml string to the zip "' .
-        #         name . '". Please try again.'
-        #     );
-        # }
-
-        # if (!zip->close())
-        #     throw new \Exception(
-        #         'Synchronization failure: Failed to close the zip "' .
-        #         name . '". Please try again.'
-        #     );
-        # }
+        
         files.each do |f, filePath|
           # Two arguments:
           # - The name of the file as it will appear in the archive
           # - The original file, including the path to find it
           zipfile.add(filePath, File.join('sample_data', f))
         end
-        zipfile.get_output_stream(zipFilePath) {|f| f.write "myFile contains just this"}
+        #zipfile.get_output_stream(zipFilePath) {|f| f.write "myFile contains just this"}
       end
 
 
@@ -833,16 +817,7 @@ module BoxalinoPackage
       return callAPI(fields, url, temporaryFilePath, timeout)
     end
 
-    # def getCurlFile(filename, type)
-
-    #     begin
-    #         if (class_exists('CURLFile'))
-    #             return new \CURLFile(filename, type);
-    #         }
-    #     } catch(\Exception e) }
-    #     return "@filename;type=type";
-    # end
-
+     
     def getTaskExecuteUrl(taskName)
       return @host + URL_EXECUTE_TASK + '?iframeAccount=' + @bxClient.getAccount() + '&task_process=' + taskName
     end

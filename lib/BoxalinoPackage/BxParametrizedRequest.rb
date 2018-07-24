@@ -92,7 +92,7 @@ module BoxalinoPackage
 		end
 		
 		def getPrefixes
-			return Array.new(@requestParametersPrefix, @requestWeightedParametersPrefix, @requestFiltersPrefix, @requestFacetsPrefix, @requestSortFieldPrefix)
+			return Array.new([@requestParametersPrefix, @requestWeightedParametersPrefix, @requestFiltersPrefix, @requestFacetsPrefix, @requestSortFieldPrefix])
 		end
 		
 		def matchesPrefix(string, prefix, checkOtherPrefixes=true) 
@@ -193,7 +193,7 @@ module BoxalinoPackage
 		end
 		
 		def getWeightedParameters
-			params = Array.new
+			params = Hash.new
 			getPrefixedParameters(@requestWeightedParametersPrefix).each do |nname , values| 
 				newname = nname
 				pieces = newname.split('_')
@@ -279,18 +279,17 @@ module BoxalinoPackage
 				items.each do |item|
 					@ids.push(item.values['id'][0])
 				end
-				#itemFields = call_user_func($this->getItemFieldsCB, $ids, $fields);
-				#if(is_array($itemFields)) {
-				#	$this->callBackCache = $itemFields;
-				#}
+				
 			end
 			return @callBackCache
 		end
 		
 		def retrieveHitFieldValues(item, field, items, fields) 
 			itemFields = retrieveFromCallBack(items, fields)
-			if (itemFields.key?(item.values['id'][0]) && itemFields[item.values['id'][0]].key?(field)) 
-				return itemFields[item.values['id'][0]][field]
+			if(!item.values['id'].nil?)
+				if (itemFields.key?(item.values['id'][0]) && itemFields[item.values['id'][0]].key?(field)) 
+					return itemFields[item.values['id'][0]][field]
+				end
 			end
 			return BxRequest.retrieveHitFieldValues(item, field, items, fields)
 		end
