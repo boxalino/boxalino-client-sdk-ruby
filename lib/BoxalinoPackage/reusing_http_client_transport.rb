@@ -23,6 +23,10 @@ module Thrift
       @client.set_auth(@url, user, pwd)
     end
 
+    def set_profile(profileId)
+      @headers.store("X-BX-PROFILEID", profileId)
+    end
+
     def open?; true end
     def read(sz); @inbuf.read sz end
     def write(buf); @outbuf << Bytes.force_binary_encoding(buf) end
@@ -41,10 +45,10 @@ module Thrift
       took = (Time.now - time_then) * 1000
       @times.push took
     end
-    
+
     def times
       return @times
     end
-    
+
   end
 end
