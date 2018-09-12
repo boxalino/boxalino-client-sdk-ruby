@@ -99,14 +99,16 @@ class BxAutocompleteResponse
 				end
 			end
 		end
-
 		return final
 	end
 
 	def getTextualSuggestionHit(suggestion)
 		if(!getResponse().hits.empty?)
+			if(suggestion.is_a?(Array))
+				suggestion = suggestion[0]
+			end
 			getResponse().hits.each do |hit|
-				if (hit.suggestion == suggestion[0])
+				if (hit.suggestion == suggestion)
 					return hit
 				end
 			end
