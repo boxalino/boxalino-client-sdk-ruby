@@ -4,7 +4,6 @@ class BxFacets
   attr_accessor :extraInfo
   attr_reader :extraInfo
   def initialize
-
     @facets = Hash.new
     @searchResult = nil
     @selectedPriceValues = nil
@@ -526,8 +525,8 @@ class BxFacets
       end
       facetResponse.values.each do |facetValue|
         if(displayRange)
-          facetValue.rangeFromInclusive = displayRange[0] != nil ? displayRange[0] : facetValue.rangeFromInclusive
-          facetValue.rangeToExclusive = displayRange[1] != nil ?  displayRange[1] : facetValue.rangeToExclusive
+          facetValue.rangeFromInclusive = displayRange[0] != nil ? displayRange[0].to_s : facetValue.rangeFromInclusive.to_s
+          facetValue.rangeToExclusive = displayRange[1] != nil ?  displayRange[1].to_s : facetValue.rangeToExclusive.to_s
         end
         facetValues[facetValue.rangeFromInclusive + '-' + facetValue.rangeToExclusive] = facetValue
       end
@@ -1072,7 +1071,6 @@ class BxFacets
   end
 
   def facetSelectedValue(fieldName, option)
-
     selectedFacets = Array.new
     if (@facets[fieldName]['selectedValues'] && @facets[fieldName]['selectedValues'] != nil)
       @facets[fieldName]['selectedValues'].each do |value|
@@ -1081,10 +1079,10 @@ class BxFacets
           temp = value ;
           rangedValue = temp.split('-')
           if (rangedValue[0] != '*')
-            selectedFacet.rangeFromInclusive = rangedValue[0].to_f
+            selectedFacet.rangeFromInclusive = rangedValue[0].to_s
           end
           if (rangedValue[1] != '*')
-            selectedFacet.rangeToExclusive = rangedValue[1].to_f
+            selectedFacet.rangeToExclusive = rangedValue[1].to_s
             if(rangedValue[0] == rangedValue[1])
               priceRangeMargin = true
               selectedFacet.rangeToExclusive += 0.01
