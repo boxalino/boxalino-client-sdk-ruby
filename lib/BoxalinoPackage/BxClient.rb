@@ -33,7 +33,7 @@ class BxClient
 	@chooseRequests = Hash.new
 	@request = nil
 	@CustomCookies = nil
-	def initialize( account, password, domain, isDev=false, host=nil, request=nil, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil)
+	def initialize( account, password, domain, isDev=false, host=nil, request=nil, params=Hash.new, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil)
 		@account = account
 		@password = password
 		#To Check Below Line
@@ -73,6 +73,10 @@ class BxClient
 		@requestContextParameters = Hash.new
 		@requestMap = Hash.new
 		@CustomCookies = nil
+
+    params.each do |key,value|
+      addToRequestMap(key, value)
+    end
 	end
 	def setCookieContainer(cook)
 		@CustomCookies = cook
