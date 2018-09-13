@@ -74,10 +74,11 @@ class BxClient
 		@requestMap = Hash.new
 		@CustomCookies = nil
 
-    params.each do |key,value|
-      addToRequestMap(key, value)
-    end
+		params.each do |key,value|
+			addToRequestMap(key, value)
+		end
 	end
+
 	def setCookieContainer(cook)
 		@CustomCookies = cook
 	end
@@ -90,7 +91,6 @@ class BxClient
 		@isTest = isTest
 	end
 
-
 	def setSocket(socketHost, socketPort=4040, socketSendTimeout=1000, socketRecvTimeout=1000)
 		@socketHost = socketHost
 		@socketPort = socketPort
@@ -102,12 +102,10 @@ class BxClient
 		@requestMap = requestMap
 	end
 
-
-	choiceIdOverwrite = "owbx_choice_id"
-
+	@choiceIdOverwrite = "owbx_choice_id"
 	def getChoiceIdOverwrite
 		if (@requestMap.has_key?(:@choiceIdOverwrite) == true)
-			return requestMap[@choiceIdOverwrite]
+			return @requestMap[@choiceIdOverwrite]
 		end
 		return nil
 	end
