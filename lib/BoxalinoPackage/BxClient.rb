@@ -639,10 +639,13 @@ module BoxalinoPackage
     end
 
     def addNotification(type, notification)
-      if(!notifications[type].nil?)
-        notifications[type] = Array.new()
+      if(@notifications.nil?)
+        @notifications = Hash.new
       end
-      notifications[type].push(notification)
+      if(@notifications && @notifications[type].nil?)
+        @notifications[type] = Array.new()
+      end
+      @notifications[type].push(notification)
     end
 
     def finalNotificationCheck(force=false, requestMapKey = 'dev_bx_notifications')
