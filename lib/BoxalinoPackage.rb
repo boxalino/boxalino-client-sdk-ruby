@@ -11,6 +11,9 @@ require "BoxalinoPackage/BxRecommendationRequest"
 require "BoxalinoPackage/BxRequest"
 require "BoxalinoPackage/BxSearchRequest"
 require "BoxalinoPackage/BxSortFields"
+require "BoxalinoPackage/BxBatchClient"
+require "BoxalinoPackage/BxBatchRequest"
+require "BoxalinoPackage/BxBatchResponse"
 
 module BoxalinoPackage
   # Your code goes here...
