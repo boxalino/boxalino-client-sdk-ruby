@@ -11,7 +11,7 @@ module BoxalinoPackage
     @isDev = false
     @requestContextParameters = Hash.new
     @profileContextList = Array.new
-    @sameInquiry = false
+    @sameInquiry = true
 
     def initialize(language, choiceId, max=10, min=0)
       if(choiceId.nil?)
@@ -22,12 +22,22 @@ module BoxalinoPackage
       @max = max
       @min = min
 
-      @sameInquiry = false
+      @sameInquiry = true
       @requestContextParameters = Hash.new
       @profileContextList = Array.new
       @profileIds = Array.new
       @choiceInquiryList = Array.new
 
+      #configurations from parent initialize
+      @bxFacets = BxFacets.new
+
+      @bxSortFields = BxSortFields.new #Array.new
+      @bxFilters = Hash.new
+      @orFilters = false
+      @hitsGroupsAsHits = nil
+      @withRelaxation = choiceId == 'search'
+      @contextItems = Array.new
+      @@returnFields= Array.new
     end
 
     def getChoiceInquiryList
@@ -54,12 +64,8 @@ module BoxalinoPackage
         profileIds = getProfileIds
       end
       @profileContextList = Array.new
-      requestContext = getRequestContext
       profileIds.each do |id|
-        profileContext = ProfileContext.new
-        profileContext.profileId = id.to_s
-        profileContext.requestContext = requestContext
-        @profileContextList.push(profileContext)
+        addProfileContext(id)
       end
 
       return @profileContextList
@@ -89,7 +95,7 @@ module BoxalinoPackage
       return searchQuery
     end
 
-    def getRequestContext
+    def getRequestContext(id)
       requestContext = RequestContext.new()
       requestContext.parameters = Hash.new
       if(!@requestContextParameters.nil?)
@@ -97,6 +103,7 @@ module BoxalinoPackage
           requestContext.parameters[k] = v
         end
       end
+      requestContext.parameters['customerId'] = [id.to_s]
       return requestContext
     end
 
@@ -114,9 +121,9 @@ module BoxalinoPackage
       return choiceInquiry
     end
 
-    def addProfileContext(id, requestContext =nil)
+    def addProfileContext(id, requestContext=nil)
       if(requestContext.nil?)
-        requestContext = getRequestContext
+        requestContext = getRequestContext(id)
       end
       profileContext = ProfileContext.new
       profileContext.profileId = id.to_s
