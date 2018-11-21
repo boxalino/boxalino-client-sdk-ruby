@@ -94,8 +94,8 @@ module BoxalinoPackage
 
       if (@searchResult && @facets.size != @searchResult.facetResponses.size)
         @searchResult.facetResponses.each do |facetResponse|
-          if(! @facets.keys[facetResponse.fieldName])
-            @facets[facetResponse.fieldName] = Array.new(
+          if(!@facets.keys[facetResponse.fieldName])
+            @facets[facetResponse.fieldName] = Hash.new(
                 'label' => facetResponse.fieldName,
                 'type' => facetResponse.numerical ? 'ranged' : 'list',
                 'order' => @facets.size,
@@ -108,7 +108,7 @@ module BoxalinoPackage
       end
       @facets.each do |fieldName , facet|
         @facetResponse = getFacetResponse(fieldName)
-        if(facetResponse != nil && (@facetResponse.values.size > 0 || facet['selectedValues'].size > 0))
+        if(@facetResponse != nil && (@facetResponse.values.size > 0 || facet['selectedValues'].size > 0))
           @fieldNames[fieldName] = {'fieldName'=>fieldName, 'returnedOrder'=> @fieldNames.size}
         end
       end
@@ -117,7 +117,7 @@ module BoxalinoPackage
       return @fieldNames.keys
     end
 
-    def  uasort(fieldNames)
+    def uasort(fieldNames)
       tempArray = fieldNames
       finalArray = Array.new
       tempArray.each do |a,b|
@@ -138,7 +138,8 @@ module BoxalinoPackage
     def getDisplayFacets(ddisplay, default=false)
       selectedFacets = Array.new
       getFieldNames().each do |fieldName|
-        if(getFacetDisplay(fieldName) == ddisplay || (getFacetDisplay(fieldName) == nil && default))
+        facetDisplay =getFacetDisplay(fieldName)
+        if(facetDisplay == ddisplay || (facetDisplay == nil && default))
           selectedFacets.push(fieldName)
         end
       end
@@ -182,7 +183,7 @@ module BoxalinoPackage
 
     def getFacetResponseExtraInfo(facetResponse, extraInfoKey, defaultExtraInfoValue = nil)
       if(!facetResponse.extraInfo.nil?)
-        if(facetResponse.extraInfo.kind_of?(Array) && facetResponse.extraInfo.size > 0 && facetResponse.extraInfo.keys[extraInfoKey])
+        if(facetResponse.extraInfo.kind_of?(Hash) && facetResponse.extraInfo[extraInfoKey])
           return facetResponse.extraInfo[extraInfoKey]
         end
         return defaultExtraInfoValue
@@ -242,8 +243,8 @@ module BoxalinoPackage
     end
 
     def getFacetLabel(fieldName, language=nil, defaultValue=nil, prettyPrint=false)
-      if(facets[fieldName])
-        defaultValue = facets[fieldName]['label']
+      if(@facets[fieldName])
+        defaultValue = @facets[fieldName]['label']
       end
       if(defaultValue == nil)
         defaultValue = fieldName
@@ -255,11 +256,11 @@ module BoxalinoPackage
         end
         labels = ActiveSupport::JSON.decode(jsonLabel)
         labels.each do |label|
-          if(language && label.language != language)
+          if(language && label["language"] != language)
             next
           end
-          if(label.value != nil)
-            return prettyPrintLabel(label.value, prettyPrint)
+          if(label["value"] != nil)
+            return prettyPrintLabel(label["value"], prettyPrint)
           end
         end
       end
@@ -482,8 +483,6 @@ module BoxalinoPackage
       return nil
     end
 
-    @facetKeyValuesCache = Hash.new
-
     def getFacetKeysValues(fieldName, ranking='alphabetical', minCategoryLevel=0)
       if(!@facetKeyValuesCache.nil?)
         if(@facetKeyValuesCache[fieldName+'_'+minCategoryLevel.to_s])
@@ -491,13 +490,15 @@ module BoxalinoPackage
         end
 
       end
+
       if(fieldName == "")
         return Array.new
       end
+
       if(fieldName == 'category_id')
         return Array.new
       end
-      facetValues = Hash.new
+
       facetResponse = getFacetResponse(fieldName)
       if(facetResponse== nil)
         return Array.new
@@ -505,77 +506,114 @@ module BoxalinoPackage
       type = getFacetType(fieldName)
       case type
       when 'hierarchical'
-        tree = buildTree(facetResponse.values)
-        tree = getSelectedTreeNode(tree)
-        node = getFirstNodeWithSeveralChildren(tree, minCategoryLevel)
-        if(node && !node.empty? && !node.nil? && !node['children'].nil?)
-          node['children'].each do |childNode|
-            if(childNode && !childNode.empty? && !childNode.nil? && !childNode['children'].nil?)
-              childNode['children'].each do |child|
-                facetValues[child["node"].stringValue] = child["node"]
-              end
-            end
-          end
-        end
+        facetValues = prepareFacetsValuesForHierarchicalType(facetResponse, minCategoryLevel)
       when 'ranged'
-        displayRange = nil
-        if(!getFacetExtraInfo(fieldName, 'bx_displayPriceRange').nil?)
-          displayRange = ActiveSupport::JSON.decode(getFacetExtraInfo(fieldName, 'bx_displayPriceRange'))
-        end
-        facetResponse.values.each do |facetValue|
-          if(displayRange)
-            facetValue.rangeFromInclusive = displayRange[0] != nil ? displayRange[0].to_s : facetValue.rangeFromInclusive.to_s
-            facetValue.rangeToExclusive = displayRange[1] != nil ?  displayRange[1].to_s : facetValue.rangeToExclusive.to_s
-          end
-          facetValues[facetValue.rangeFromInclusive + '-' + facetValue.rangeToExclusive] = facetValue
-        end
+        facetValues = prepareFacetsValuesForRangedType(facetResponse)
       else
-        if(facetResponse.values)
-          facetResponse.values.each do |facetValue|
-            facetValues[facetValue.stringValue] = facetValue
-          end
-        end
-
-        if(@facets[fieldName]['selectedValues'].kind_of?(Array))
-          @facets[fieldName]['selectedValues'].each do |value|
-            if(facetValues[value] == nil)
-              newValue = FacetValue.new()
-              newValue.rangeFromInclusive = nil
-              newValue.rangeToExclusive = nil
-              newValue.hierarchyId = nil
-              newValue.hierarchy = nil
-              newValue.stringValue = value
-              newValue.hitCount = 0
-              newValue.selected = true
-              facetValues[value] = newValue
-            end
-          end
-        end
+        facetValues = prepareFacetsValuesForDefaultType(facetResponse)
       end
 
       overWriteRanking = getFacetExtraInfo(fieldName, "valueorderEnums")
       if(overWriteRanking == "counter")
-        ranking = 'counter'
-      end
-      if(overWriteRanking == "alphabetical")
-        ranking = 'alphabetical'
-      end
-      if(ranking == 'counter')
         uasort(facetValues)
       end
 
+      facetValues = prepareFacetsByDisplaySelectedValuesExtra(fieldName, facetValues)
+      facetValues = applyDependencies(fieldName, facetValues)
+      facetValues = prepareFacetsByEnumDisplaySizeExtra(fieldName, facetValues)
+      @facetKeyValuesCache[fieldName+'_'+minCategoryLevel.to_s] = facetValues
+
+      return facetValues
+    end
+
+    def prepareFacetsValuesForDefaultType(facetResponse)
+      facetValues = Hash.new
+      if(facetResponse.values)
+        facetResponse.values.each do |facetValue|
+          facetValues[facetValue.stringValue] = facetValue
+        end
+      end
+
+      fieldName = facetResponse.fieldName
+      if(@searchResult && @facets.size != @searchResult.facetResponses.size)
+        if(@facets.keys.nil? || @facets[fieldName].nil?)
+          @facets[fieldName] = Hash.new
+          @facets[fieldName].store("label", fieldName)
+          @facets[fieldName].store("boundsOnly", facetResponse.boundsOnly)
+          @facets[fieldName].store("type", facetResponse.numerical ? 'ranged' : 'list')
+          @facets[fieldName].store("order", facetResponse.sortOrder)
+          @facets[fieldName].store("selectedValues", Array.new)
+          @facets[fieldName].store("maxCount", -1)
+        end
+      end
+
+      if(@facets[fieldName]['selectedValues'].kind_of?(Array))
+        @facets[fieldName]['selectedValues'].each do |value|
+          if(facetValues[value] == nil)
+            newValue = FacetValue.new()
+            newValue.rangeFromInclusive = nil
+            newValue.rangeToExclusive = nil
+            newValue.hierarchyId = nil
+            newValue.hierarchy = nil
+            newValue.stringValue = value
+            newValue.hitCount = 0
+            newValue.selected = true
+            facetValues[value] = newValue
+          end
+        end
+      end
+
+      return facetValues
+    end
+
+    def prepareFacetsValuesForHierarchicalType(facetResponse, minCategoryLevel)
+      facetValues = Hash.new
+      tree = buildTree(facetResponse.values)
+      tree = getSelectedTreeNode(tree)
+      node = getFirstNodeWithSeveralChildren(tree, minCategoryLevel)
+      if(node && !node.empty? && !node.nil? && !node['children'].nil?)
+        node['children'].each do |childNode|
+          if(childNode && !childNode.empty? && !childNode.nil? && !childNode['children'].nil?)
+            childNode['children'].each do |child|
+              facetValues[child["node"].stringValue] = child["node"]
+            end
+          end
+        end
+      end
+
+      return facetValues
+    end
+
+    def prepareFacetsValuesForRangedType(facetResponse)
+      facetValues = Hash.new
+      displayRange = nil
+      if(!getFacetExtraInfo(facetResponse.fieldName, 'bx_displayPriceRange').nil?)
+        displayRange = ActiveSupport::JSON.decode(getFacetExtraInfo(facetResponse.fieldName, 'bx_displayPriceRange'))
+      end
+      facetResponse.values.each do |facetValue|
+        if(displayRange)
+          facetValue.rangeFromInclusive = displayRange[0] != nil ? displayRange[0].to_s : facetValue.rangeFromInclusive.to_s
+          facetValue.rangeToExclusive = displayRange[1] != nil ?  displayRange[1].to_s : facetValue.rangeToExclusive.to_s
+        end
+        facetValues[facetValue.rangeFromInclusive + '-' + facetValue.rangeToExclusive] = facetValue
+      end
+
+      return facetValues
+    end
+
+    def prepareFacetsByDisplaySelectedValuesExtra(fieldName, facetValues)
       displaySelectedValues = getFacetExtraInfo(fieldName, "displaySelectedValues")
+      finalFacetValues = Hash.new
       if(displaySelectedValues == "only")
-        finalFacetValues = Array.new
         facetValues.each do |k , v|
           if(v.selected)
             finalFacetValues[k] = v
           end
         end
-        facetValues = finalFacetValues=="" ? facetValues : finalFacetValues
+        return finalFacetValues=="" ? facetValues : finalFacetValues
       end
       if(displaySelectedValues == "top")
-        finalFacetValues = Array.new
+        finalFacetValues = Hash.new
         facetValues.each do |k , v|
           if(v.selected)
             finalFacetValues[k] = v
@@ -586,25 +624,52 @@ module BoxalinoPackage
             finalFacetValues[k] = v
           end
         end
-        facetValues = finalFacetValues
+        return finalFacetValues
       end
-      facetValues = applyDependencies(fieldName, facetValues)
+
+      return facetValues
+    end
+
+    def prepareFacetsByEnumDisplaySizeExtra(fieldName, facetValues)
       enumDisplaySize = getFacetExtraInfo(fieldName, "enumDisplayMaxSize").to_i
       if(enumDisplaySize > 0 && facetValues.size > enumDisplaySize)
         enumDisplaySizeMin = getFacetExtraInfo(fieldName, "enumDisplaySize").to_i
         if(enumDisplaySizeMin == 0)
           enumDisplaySizeMin = enumDisplaySize
         end
-        finalFacetValues = Array.new
+        finalFacetValues = Hash.new
         facetValues.each do |k , v|
           if(finalFacetValues.size >= enumDisplaySizeMin)
             v.hidden = true
           end
           finalFacetValues[k] = v
         end
-        facetValues = finalFacetValues
+        return finalFacetValues
       end
-      @facetKeyValuesCache[fieldName+'_'+minCategoryLevel.to_s] = facetValues
+
+      return facetValues
+    end
+
+    def prepareFacetsByIconMapExtra(facetValues, fieldName, language = nil, defaultValue = '')
+      facetIconMap = getFacetExtraInfo(fieldName, 'iconMap')
+      if(facetIconMap.nil?)
+        return facetValues
+      end
+      iconMap = ActiveSupport::JSON.decode(facetIconMap)
+      facetValues.each do |name, properties|
+        facetValue = name.downcase
+        iconMap.each do |icon|
+          if(language && icon.language != language)
+            next
+          end
+          if(facetValue == icon.value.downcase)
+            properties.icon = icon.icon
+            facetValues[name] = properties
+          end
+        end
+        return facetValues
+      end
+
       return facetValues
     end
 
@@ -870,8 +935,6 @@ module BoxalinoPackage
       return Array.new
     end
 
-    @facetValueArrayCache = Hash.new
-
     def getFacetValueArray(fieldName, facetValue)
       hhash = fieldName + ' - ' + facetValue
       if(!@facetValueArrayCache.nil?)
@@ -919,11 +982,9 @@ module BoxalinoPackage
         rescue Exception => e
           hidden =  false
         end
-        # hidden = fv.hidden != nil ? fv.hidden : false
-
       end
-      type = getFacetType(fieldName)
 
+      type = getFacetType(fieldName)
       case type
       when 'hierarchical'
         temp = fv.stringValue
@@ -934,7 +995,6 @@ module BoxalinoPackage
         from = fv.rangeFromInclusive.to_f.round(2)
         to = fv.rangeToExclusive.to_f.round(2)
         valueLabel = from.to_s + ' - ' + to.to_s
-        paramValue = fv.stringValue
         paramValue = "#{from}-#{to}"
         @facetValueArrayCache[hhash] =  [valueLabel, paramValue, fv.hitCount, fv.selected, hidden]
         return @facetValueArrayCache[hhash]
@@ -954,10 +1014,7 @@ module BoxalinoPackage
       valueLabel = nil
       if(@selectedPriceValues != nil )
         from = @selectedPriceValues[0].rangeFromInclusive.to_f.round(2)
-        to = @selectedPriceValues[0].rangeToExclusive
-        if(@priceRangeMargin)
-          to = to - 0.01
-        end
+        to = @selectedPriceValues[0].rangeToExclusive + 0.1
         to = to.round(2)
         valueLabel = from + '-' +to
       end
@@ -970,9 +1027,6 @@ module BoxalinoPackage
 
     def getFacetValueLabel(fieldName, facetValue)
       label = getFacetValueArray(fieldName, facetValue)[0]
-      parameterValue =getFacetValueArray(fieldName, facetValue)[1]
-      hitCount =getFacetValueArray(fieldName, facetValue)[2]
-      selected = getFacetValueArray(fieldName, facetValue)[3]
       return label
     end
 
@@ -985,18 +1039,11 @@ module BoxalinoPackage
     end
 
     def getFacetValueCount(fieldName,facetValue)
-      label = getFacetValueArray(fieldName, facetValue)[0]
-      parameterValue  = getFacetValueArray(fieldName, facetValue)[1]
       hitCount = getFacetValueArray(fieldName, facetValue)[2]
-      selected = getFacetValueArray(fieldName, facetValue)[3]
       return hitCount
     end
 
     def isFacetValueHidden(fieldName, facetValue)
-      label = getFacetValueArray(fieldName, facetValue)[0]
-      parameterValue = getFacetValueArray(fieldName, facetValue)[1]
-      hitCount = getFacetValueArray(fieldName, facetValue)[2]
-      selected = getFacetValueArray(fieldName, facetValue)[3]
       hidden = getFacetValueArray(fieldName, facetValue)[4]
       return hidden
     end
@@ -1010,10 +1057,7 @@ module BoxalinoPackage
     end
 
     def getFacetValueParameterValue(fieldName, facetValue)
-      label =getFacetValueArray(fieldName, facetValue)[0]
       parameterValue = getFacetValueArray(fieldName, facetValue)[1]
-      hitCount =getFacetValueArray(fieldName, facetValue)[2]
-      selected = getFacetValueArray(fieldName, facetValue)[3]
       return parameterValue
     end
 
@@ -1022,9 +1066,6 @@ module BoxalinoPackage
     end
 
     def isFacetValueSelected(fieldName, facetValue)
-      label = getFacetValueArray(fieldName, facetValue)[0]
-      parameterValue = getFacetValueArray(fieldName, facetValue)[1]
-      hitCount = getFacetValueArray(fieldName, facetValue)[2]
       selected = getFacetValueArray(fieldName, facetValue)[3]
       return selected
     end
@@ -1044,7 +1085,6 @@ module BoxalinoPackage
     end
 
     def getThriftFacets
-
       thriftFacets = Array.new
       @facets.each do |fieldName , facet|
         type = facet['type']
@@ -1100,7 +1140,6 @@ module BoxalinoPackage
 
     def getParentId(fieldName, id)
       hierarchy = Array.new
-
       @searchResult.facetResponses.each do |response|
         if(response.fieldName == fieldName)
           response.values.each do |item|
@@ -1121,5 +1160,68 @@ module BoxalinoPackage
         end
       end
     end
+
+    def getFacetsCollection(language = nil)
+      facetsCollection = Hash.new
+      if(@searchResult != nil && @searchResult.facetResponses != nil)
+        @searchResult.facetResponses.each do |facetResponse|
+          facetField = facetResponse.fieldName
+          type = getFacetType(facetField)
+          case type
+          when 'hierarchical'
+            properties = prepareFacetsValuesForHierarchicalType(facetResponse, 0)
+          when 'ranged'
+            properties = prepareFacetsValuesForRangedType(facetResponse)
+          else
+            properties = prepareFacetsValuesForDefaultType(facetResponse)
+          end
+
+          overWriteRanking = getFacetExtraInfo(facetField, "valueorderEnums")
+          if(overWriteRanking == "counter")
+            uasort(properties)
+          end
+
+          properties = prepareFacetsByDisplaySelectedValuesExtra(facetField, properties)
+          properties = applyDependencies(facetField, properties)
+          properties = prepareFacetsByEnumDisplaySizeExtra(facetField, properties)
+          properties = prepareFacetsByIconMapExtra(properties, facetField)
+          hasValueCorrelation = getFacetExtraInfo(facetField, "facet-value-correlation")
+          if(!hasValueCorrelation.nil?)
+            properties = prepareFacetsByValueCorrelation(facetField, properties, hasValueCorrelation)
+          end
+          properties["label"] = getFacetLabel(facetField, language)
+          properties["showCounter"] = showFacetValueCounters(facetField)
+          properties["hidden"] = isFacetHidden(facetField)
+          properties["displayType"] = getFacetDisplay(facetField)
+          properties["type"] = getFacetType(facetField)
+          properties["icon"] = getFacetIcon(facetField)
+
+          facetsCollection[facetField] = properties
+        end
+      end
+      return facetsCollection
+    end
+
+    def prepareFacetsByValueCorrelation(fieldName, facetValues, valueCorrelationField)
+      extraValuesInfo = getFacetExtraInfo(fieldName, valueCorrelationField)
+      if(extraValuesInfo.nil?)
+        return facetValues
+      end
+
+      extraValues = ActiveSupport::JSON.decode(extraValuesInfo)
+      finalFacetValues = Hash.new
+      if(extraValues.kind_of?(Hash))
+        facetValues.each do |k , v|
+          if(!extraValues[k].nil?)
+            v.stringValue = extraValues[k]["label"][0]
+          end
+          finalFacetValues[k] = v
+        end
+        return finalFacetValues
+      end
+
+      return facetValues
+    end
+
   end
 end
