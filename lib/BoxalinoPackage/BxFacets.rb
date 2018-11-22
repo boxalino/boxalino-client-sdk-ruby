@@ -530,34 +530,40 @@ module BoxalinoPackage
       facetValues = Hash.new
       if(facetResponse.values)
         facetResponse.values.each do |facetValue|
-          facetValues[facetValue.stringValue] = facetValue
+          newFacetType = OpenStruct.new
+          newFacetType.stringValue = facetValue.stringValue
+          newFacetType.hitCount = facetValue.hitCount
+          newFacetType.selected = facetValue.selected
+          newFacetType.hidden = false
+          newFacetType.icon = nil
+          newFacetType.label = facetValue.stringValue
+          facetValues[facetValue.stringValue] = newFacetType
         end
       end
 
       fieldName = facetResponse.fieldName
       if(@searchResult && @facets.size != @searchResult.facetResponses.size)
         if(@facets.keys.nil? || @facets[fieldName].nil?)
-          @facets[fieldName] = Hash.new
-          @facets[fieldName].store("label", fieldName)
-          @facets[fieldName].store("boundsOnly", facetResponse.boundsOnly)
-          @facets[fieldName].store("type", facetResponse.numerical ? 'ranged' : 'list')
-          @facets[fieldName].store("order", facetResponse.sortOrder)
-          @facets[fieldName].store("selectedValues", Array.new)
-          @facets[fieldName].store("maxCount", -1)
+          @facets[fieldName] = OpenStruct.new
+          @facets[fieldName].label =fieldName
+          @facets[fieldName].boundsOnly =facetResponse.boundsOnly
+          @facets[fieldName].type =facetResponse.numerical ? 'ranged' : 'list'
+          @facets[fieldName].order =facetResponse.sortOrder
+          @facets[fieldName].selectedValues = Array.new
+          @facets[fieldName].maxCount = -1
         end
       end
 
       if(@facets[fieldName]['selectedValues'].kind_of?(Array))
         @facets[fieldName]['selectedValues'].each do |value|
           if(facetValues[value] == nil)
-            newValue = FacetValue.new()
-            newValue.rangeFromInclusive = nil
-            newValue.rangeToExclusive = nil
-            newValue.hierarchyId = nil
-            newValue.hierarchy = nil
+            newValue = OpenStruct.new
             newValue.stringValue = value
             newValue.hitCount = 0
             newValue.selected = true
+            newValue.hidden = false
+            newValue.icon = nil
+            newValue.label = value
             facetValues[value] = newValue
           end
         end
@@ -1161,7 +1167,7 @@ module BoxalinoPackage
       end
     end
 
-    def getFacetsCollection(language = nil)
+    def getFacetsAsObjectsCollection(language = nil)
       facetsCollection = Hash.new
       if(@searchResult != nil && @searchResult.facetResponses != nil)
         @searchResult.facetResponses.each do |facetResponse|
@@ -1189,14 +1195,17 @@ module BoxalinoPackage
           if(!hasValueCorrelation.nil?)
             properties = prepareFacetsByValueCorrelation(facetField, properties, hasValueCorrelation)
           end
-          properties["label"] = getFacetLabel(facetField, language)
-          properties["showCounter"] = showFacetValueCounters(facetField)
-          properties["hidden"] = isFacetHidden(facetField)
-          properties["displayType"] = getFacetDisplay(facetField)
-          properties["type"] = getFacetType(facetField)
-          properties["icon"] = getFacetIcon(facetField)
+          facetObject = OpenStruct.new
+          facetObject.optionValues = properties
+          facetObject.fieldName = facetField
+          facetObject.order = facetResponse.sortOrder
+          facetObject.label = getFacetLabel(facetField, language)
+          facetObject.hidden = showFacetValueCounters(facetField)
+          facetObject.displayType = getFacetDisplay(facetField)
+          facetObject.type = getFacetType(facetField)
+          facetObject.icon = getFacetIcon(facetField)
 
-          facetsCollection[facetField] = properties
+          facetsCollection[facetField] = facetObject
         end
       end
       return facetsCollection
@@ -1213,7 +1222,9 @@ module BoxalinoPackage
       if(extraValues.kind_of?(Hash))
         facetValues.each do |k , v|
           if(!extraValues[k].nil?)
-            v.stringValue = extraValues[k]["label"][0]
+            v.label = extraValues[k]["label"][0]
+          else
+            v.label = k
           end
           finalFacetValues[k] = v
         end
