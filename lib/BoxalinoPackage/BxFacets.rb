@@ -616,7 +616,7 @@ module BoxalinoPackage
             finalFacetValues[k] = v
           end
         end
-        return finalFacetValues=="" ? facetValues : finalFacetValues
+        return finalFacetValues.empty? ? facetValues : finalFacetValues
       end
       if(displaySelectedValues == "top")
         finalFacetValues = Hash.new
@@ -1198,13 +1198,16 @@ module BoxalinoPackage
           facetObject = OpenStruct.new
           facetObject.optionValues = properties
           facetObject.fieldName = facetField
-          facetObject.order = facetResponse.sortOrder
+
+          order = getFacetExtraInfo(facetField, "order")
+          facetObject.order = order.nil? ? "" : order
           facetObject.label = getFacetLabel(facetField, language)
           facetObject.showCounter = showFacetValueCounters(facetField)
           facetObject.displayType = getFacetDisplay(facetField)
           facetObject.hidden = facetObject.displayType=="hidden" ? true : false
           facetObject.type = getFacetType(facetField)
           facetObject.icon = getFacetIcon(facetField)
+
           facetsCollection[facetField] = facetObject
         end
       end

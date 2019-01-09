@@ -128,9 +128,7 @@ module BoxalinoPackage
 
 		def getTextualSuggestionFacets(suggestion)
 			hit = getTextualSuggestionHit(suggestion)
-
 			facets = getSearchRequest().getFacets()
-
 			if (facets.nil? || facets == "" )
 				return nil
 			end
