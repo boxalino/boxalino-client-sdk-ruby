@@ -1200,7 +1200,7 @@ module BoxalinoPackage
           facetObject.fieldName = facetField
 
           order = getFacetExtraInfo(facetField, "order")
-          facetObject.order = order.nil? ? "" : order
+          facetObject.order = order.nil? ? facetsCollection.size.to_s : order
           facetObject.label = getFacetLabel(facetField, language)
           facetObject.showCounter = showFacetValueCounters(facetField)
           facetObject.displayType = getFacetDisplay(facetField)
