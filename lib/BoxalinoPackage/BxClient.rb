@@ -34,7 +34,7 @@ module BoxalinoPackage
     @apiKey = nil
     @apiSecret = nil
 
-    def initialize( account, password, domain, isDev=false, host=nil, request=nil, params=Hash.new, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil, apiKey=nil, apiSecret=nil)
+    def initialize(account, password, domain, isDev=false, host=nil, request=nil, params=Hash.new, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil, apiKey=nil, apiSecret=nil)
       @account = account
       @password = password
       #To Check Below Line

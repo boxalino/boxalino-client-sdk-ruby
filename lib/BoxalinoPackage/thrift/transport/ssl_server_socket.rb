@@ -1,3 +1,4 @@
+# encoding: ascii-8bit
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
@@ -17,8 +18,20 @@
 # under the License.
 #
 
-begin
-  require "thrift_native"
-rescue LoadError
-  puts "Unable to load thrift_native extension. Defaulting to pure Ruby libraries."
+require 'socket'
+
+module Thrift
+  class SSLServerSocket < ServerSocket
+    def initialize(host_or_port, port = nil, ssl_context = nil)
+      super(host_or_port, port)
+      @ssl_context = ssl_context
+    end
+
+    attr_accessor :ssl_context
+
+    def listen
+      socket = TCPServer.new(@host, @port)
+      @handle = OpenSSL::SSL::SSLServer.new(socket, @ssl_context)
+    end
+  end
 end

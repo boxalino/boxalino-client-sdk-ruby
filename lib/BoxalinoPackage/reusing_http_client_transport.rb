@@ -15,7 +15,6 @@ module Thrift
       @url = url
       @headers = {'Content-Type' => 'application/x-thrift'}
       @outbuf = Bytes.empty_byte_buffer
-      @times = []
       @client = HTTPClient.new
     end
 
@@ -36,18 +35,11 @@ module Thrift
     end
 
     def flush
-      time_then = Time.now
-      resp = @client.post(@url, @outbuf)
+      resp = @client.post(@url, @outbuf, @headers)
       data = resp.body
       data = Bytes.force_binary_encoding(data)
       @inbuf = StringIO.new data
       @outbuf = Bytes.empty_byte_buffer
-      took = (Time.now - time_then) * 1000
-      @times.push took
-    end
-
-    def times
-      return @times
     end
 
   end
