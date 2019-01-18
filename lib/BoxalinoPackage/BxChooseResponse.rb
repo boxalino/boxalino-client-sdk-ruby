@@ -93,9 +93,11 @@ module BoxalinoPackage
       variant.searchRelaxation.suggestionsResults.each do |searchResult|
         if(!searchResult.totalHitCount.nil?)
           if (searchResult.totalHitCount > 0)
-            if(searchResult.queryText == "" || variant.searchResult.queryText == "")
-              next
-            end
+              originalSearch = variant.searchResult.queryText
+              relaxationSearch = searchResult.queryText
+              if(originalSearch.nil? || originalSearch.empty? || relaxationSearch.nil? || relaxationSearch.empty?)
+                next
+              end
             distance = levenshtein_distance(searchResult.queryText, variant.searchResult.queryText)
             if(distance <= maxDistance && distance != -1)
               return searchResult
