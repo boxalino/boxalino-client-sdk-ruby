@@ -239,9 +239,11 @@ module BoxalinoPackage
         hits = searchResult.hits
         if((hits && hits.empty?) || hits.nil?)
           hits = Array.new
-          if(searchResult.hitsGroups != nil)
+          if(searchResult.hitsGroups && (!searchResult.hitsGroups.nil? || !searchResults.hitsGroups.empty?))
             searchResult.hitsGroups.each do |hitGroup|
-              hits.push(hitGroup.hits[0])
+              if (hitGroup.hits && (!hitGroup.hits.nil? || !hitGroup.hits.empty?))
+                hits.push(hitGroup.hits[0])
+              end
             end
           end
         end
@@ -251,7 +253,7 @@ module BoxalinoPackage
             finalFields = item.values.keys
           end
           finalFields.each do |field|
-            if (item.values[field] != nil)
+            if (!item.values.nil? && item.values[field] != nil)
               if (item.values[field] != "")
                 if(fieldValues[item.values['id'][0]].nil?)
                   fieldValues[item.values['id'][0]] = Hash.new
