@@ -321,7 +321,7 @@ module BoxalinoPackage
       return requestContext
     end
 
-    def  throwCorrectP13nException(e)
+    def  throwCorrectP13nException(e, extra = {})
       if(e.to_s.index( 'Could not connect ') != nil)
         raise 'The connection to our server failed even before checking your credentials. This might be typically caused by 2 possible things: wrong values in host, port, schema or uri (typical value should be host=cdn.bx-cloud.com, port=443, uri =/p13n.web/p13n and schema=https, your values are : host=' + @host + ', port=' + @port + ', schema=' + @schema + ', uri=' + @uri + '). Another possibility, is that your server environment has a problem with ssl certificate (peer certificate cannot be authenticated with given ca certificates), which you can either fix, or avoid the problem by adding the line "curl_setopt(self::$curlHandle, CURLOPT_SSL_VERIFYPEER, false);" in the file "lib\Thrift\Transport\P13nTCurlClient" after the call to curl_init in the function flush. Full error message=' + e.to_s
       end
@@ -358,15 +358,21 @@ module BoxalinoPackage
       jsonEncode = ActiveSupport::JSON
       exceptionMessage = e.to_s
       backtrace = e.backtrace
-      exceptionFull = ["Message", exceptionMessage, "Backtrace", backtrace, "Choice Request", jsonEncode.encode(@choiceRequest)]
+      exceptionFull = ["Message", exceptionMessage, "Backtrace", backtrace, "Choice Request", jsonEncode.encode(@choiceRequest), "Extra case", jsonEncode.encode(extra)]
       raise exceptionFull.join("\n")
-
     end
 
-    def p13nchoose(choiceRequest)
+    def p13nchoose(choiceRequest, responseFallback = true)
       begin
-        # getP13n(@_timeout)
-        choiceResponse = getP13n(@_timeout).choose(choiceRequest)
+        clientTry = 1
+        begin
+          client = getP13n(@_timeout)
+        rescue Exception => e
+          clientTry = 2
+          client = getP13n(@_timeout)
+        end
+
+        choiceResponse = client.choose(choiceRequest)
         if(!@requestMap.nil?)
           if(!@requestMap['dev_bx_debug'].nil? && @requestMap['dev_bx_debug'] == 'true')
             addNotification('bxRequest', choiceRequest)
@@ -385,7 +391,11 @@ module BoxalinoPackage
         end
         return choiceResponse
       rescue Exception => e
-        throwCorrectP13nException(e)
+        if(responseFallback)
+          p13nchoose(choiceRequest, false)
+        else
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
+        end
       end
     end
 
@@ -393,13 +403,13 @@ module BoxalinoPackage
       begin
         bundleChoiceResponse = getP13n(@_timeout).chooseAll(choiceRequestBundle)
         if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
-            jsonEncode = ActiveSupport::JSON
-           _tempOutPut = Array.new(['<pre><h1>Bundle Choice Request</h1>'])
-           _tempOutPut.push(jsonEncode.encode(requestBundle))
-           _tempOutPut.push("<br><h1>Bundle Choice Response</h1>")
-           _tempOutPut.push(jsonEncode.encode(bundleChoiceResponse))
-           _tempOutPut.push("</pre>")
-           raise(_tempOutPut.join(' '))
+          jsonEncode = ActiveSupport::JSON
+          _tempOutPut = Array.new(['<pre><h1>Bundle Choice Request</h1>'])
+          _tempOutPut.push(jsonEncode.encode(requestBundle))
+          _tempOutPut.push("<br><h1>Bundle Choice Response</h1>")
+          _tempOutPut.push(jsonEncode.encode(bundleChoiceResponse))
+          _tempOutPut.push("</pre>")
+          raise(_tempOutPut.join(' '))
         end
         return bundleChoiceResponse
       rescue Exception => e
@@ -522,7 +532,6 @@ module BoxalinoPackage
       return @bundleRequests
     end
 
-
     def choose(chooseAll=false, ssize=0)
       if(chooseAll == true)
         bundleResponse = p13nchooseAll(getThriftBundleChoiceRequest())
@@ -591,13 +600,13 @@ module BoxalinoPackage
       begin
         choiceResponse = getP13n(@_timeout).choose(autocompleteRequest)
         if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
-           jsonEncode = ActiveSupport::JSON
-             _tempOutPut = Array.new(['<pre><h1>Autocomplete bundle</h1>'])
-             _tempOutPut.push(jsonEncode.encode(autocompleteRequest))
-             _tempOutPut.push("<br><h1>Choice Response</h1>")
-             _tempOutPut.push(jsonEncode.encode(choiceResponse))
-             _tempOutPut.push("</pre>")
-             raise(_tempOutPut.join(' '))
+          jsonEncode = ActiveSupport::JSON
+          _tempOutPut = Array.new(['<pre><h1>Autocomplete bundle</h1>'])
+          _tempOutPut.push(jsonEncode.encode(autocompleteRequest))
+          _tempOutPut.push("<br><h1>Choice Response</h1>")
+          _tempOutPut.push(jsonEncode.encode(choiceResponse))
+          _tempOutPut.push("</pre>")
+          raise(_tempOutPut.join(' '))
         end
         return choiceResponse
       rescue Exception => e
@@ -638,7 +647,7 @@ module BoxalinoPackage
       begin
         choiceResponse = getP13n(@_timeout).autocompleteAll(requestBundle).responses
         if(!@requestMap.nil?)
-         if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+          if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
             jsonEncode = ActiveSupport::JSON
             _tempOutPut = Array.new(['<pre><h1>Autocomplete ALL Request bundle</h1>'])
             _tempOutPut.push(jsonEncode.encode(requestBundle))

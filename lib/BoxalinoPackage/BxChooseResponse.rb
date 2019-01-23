@@ -51,10 +51,9 @@ module BoxalinoPackage
     end
 
     def getChoiceResponseVariant(choice=nil, count=0)
-      @k = -1
+      @k = 0
       if(!@bxRequests.nil?  || !@bxRequests.empty?)
         @bxRequests.each do | bxRequest|
-          @k += 1
           if (choice.nil? || choice == bxRequest.getChoiceId())
             if (count > 0)
               count -= 1
@@ -63,6 +62,7 @@ module BoxalinoPackage
 
             return getChoiceIdResponseVariant(@k)
           end
+          @k += 1
         end
       end
     end
@@ -71,8 +71,8 @@ module BoxalinoPackage
       response = getResponse()
       begin
         if(!response.nil? || !response.empty?)
-          if ( response.variants !=''  && !response.variants.nil?)
-            return response.variants[id-1]
+          if (response.variants !=''  && !response.variants.nil?)
+            return response.variants[id]
           end
         end
       rescue Exception => e
@@ -83,7 +83,8 @@ module BoxalinoPackage
         variant.searchResult = response
         return variant
       end
-      raise "no variant provided in choice response for variant id $id, bxRequest: " + pp(@bxRequests)
+
+      raise "no variant provided in choice response for variant id #{id}, bxRequest: " + ActiveSupport::JSON.encode(@bxRequests)
     end
 
     def getFirstPositiveSuggestionSearchResult(variant, maxDistance=10)
