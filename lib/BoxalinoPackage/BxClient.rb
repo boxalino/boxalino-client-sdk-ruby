@@ -14,6 +14,8 @@ module BoxalinoPackage
 
     @chooseResponses = nil
     @bundleChooseRequests = Array.new
+    @bundleRequests = nil
+
     VISITOR_COOKIE_TIME = 31536000
     @_timeout = 2
     @requestContextParameters = Hash.new
@@ -22,7 +24,6 @@ module BoxalinoPackage
     @profileId = nil
 
     @requestMap = Hash.new
-
     @socketHost = nil
     @socketPort = nil
     @socketSendTimeout = nil
@@ -37,8 +38,6 @@ module BoxalinoPackage
     def initialize(account, password, domain, isDev=false, host=nil, request=nil, params=Hash.new, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil, apiKey=nil, apiSecret=nil)
       @account = account
       @password = password
-      #To Check Below Line
-      #	@requestMap = params
       @isDev = isDev
       @host = host
       @request = request
@@ -80,6 +79,8 @@ module BoxalinoPackage
       params.each do |key,value|
         addToRequestMap(key, value)
       end
+
+      addRequestContextParameter("_system_requestid", SecureRandom.uuid)
     end
 
     def setCookieContainer(cook)
@@ -353,7 +354,13 @@ module BoxalinoPackage
       if(e.to_s.index('All choice variants are excluded') != nil)
         raise "You have an invalid configuration for with a choice defined, but having no defined strategies. This is a quite unusual case, please contact support@boxalino.com to get support."
       end
-      raise e.to_s
+
+      jsonEncode = ActiveSupport::JSON
+      exceptionMessage = e.to_s
+      backtrace = e.backtrace
+      exceptionFull = ["Message", exceptionMessage, "Backtrace", backtrace, "Choice Request", jsonEncode.encode(@choiceRequest)]
+      raise exceptionFull.join("\n")
+
     end
 
     def p13nchoose(choiceRequest)
@@ -385,13 +392,14 @@ module BoxalinoPackage
     def p13nchooseAll(choiceRequestBundle)
       begin
         bundleChoiceResponse = getP13n(@_timeout).chooseAll(choiceRequestBundle)
-        if(@requestMap['dev_bx_disp'].kind_of?(Array) )
-          puts "<pre><h1>Bundle Choice Request</h1>"
-          pp(choiceRequestBundle)
-          puts "<br><h1>Bundle Choice Response</h1>"
-          pp(bundleChoiceResponse)
-          puts "</pre>"
-          exit;
+        if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+            jsonEncode = ActiveSupport::JSON
+           _tempOutPut = Array.new(['<pre><h1>Bundle Choice Request</h1>'])
+           _tempOutPut.push(jsonEncode.encode(requestBundle))
+           _tempOutPut.push("<br><h1>Bundle Choice Response</h1>")
+           _tempOutPut.push(jsonEncode.encode(bundleChoiceResponse))
+           _tempOutPut.push("</pre>")
+           raise(_tempOutPut.join(' '))
         end
         return bundleChoiceResponse
       rescue Exception => e
@@ -509,7 +517,9 @@ module BoxalinoPackage
         end
         bundleRequest.push(getBundleChoiceRequest(choiceInquiries, getRequestContext()))
       end
-      return ChoiceRequestBundle.new(['requests' => bundleRequest])
+
+      @bundleRequests = ChoiceRequestBundle.new(['requests' => bundleRequest])
+      return @bundleRequests
     end
 
 
@@ -579,14 +589,15 @@ module BoxalinoPackage
 
     def p13nautocomplete(autocompleteRequest)
       begin
-        choiceResponse = getP13n(@_timeout).choose(choiceRequest)
-        if(@requestMap['dev_bx_disp'].kind_of?(Array) )
-          puts "<pre><h1>Autocomplete Request</h1>"
-          pp(autocompleteRequest)
-          puts "<br><h1>Choice Response</h1>"
-          pp(choiceResponse)
-          puts "</pre>"
-          exit;
+        choiceResponse = getP13n(@_timeout).choose(autocompleteRequest)
+        if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+           jsonEncode = ActiveSupport::JSON
+             _tempOutPut = Array.new(['<pre><h1>Autocomplete bundle</h1>'])
+             _tempOutPut.push(jsonEncode.encode(autocompleteRequest))
+             _tempOutPut.push("<br><h1>Choice Response</h1>")
+             _tempOutPut.push(jsonEncode.encode(choiceResponse))
+             _tempOutPut.push("</pre>")
+             raise(_tempOutPut.join(' '))
         end
         return choiceResponse
       rescue Exception => e
@@ -627,13 +638,14 @@ module BoxalinoPackage
       begin
         choiceResponse = getP13n(@_timeout).autocompleteAll(requestBundle).responses
         if(!@requestMap.nil?)
-          if(@requestMap['dev_bx_disp'].kind_of?(Array) )
-            puts "<pre><h1>Request bundle</h1>"
-            pp(requestBundle)
-            puts "<br><h1>Choice Response</h1>"
-            pp(choiceResponse)
-            puts "</pre>"
-            exit;
+         if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+            jsonEncode = ActiveSupport::JSON
+            _tempOutPut = Array.new(['<pre><h1>Autocomplete ALL Request bundle</h1>'])
+            _tempOutPut.push(jsonEncode.encode(requestBundle))
+            _tempOutPut.push("<br><h1>Choice Response</h1>")
+            _tempOutPut.push(jsonEncode.encode(choiceResponse))
+            _tempOutPut.push("</pre>")
+            raise(_tempOutPut.join(' '))
           end
         end
         return choiceResponse
@@ -684,14 +696,5 @@ module BoxalinoPackage
       return final
     end
 
-    def finalNotificationCheck(force=false, requestMapKey = 'dev_bx_notifications')
-
-      if (force == true || (!@requestMap[requestMapKey].nil? ))
-        puts "<pre><h1>Notifications</h1>"
-        pp(@notifications)
-        puts "</pre>"
-        exit
-      end
-    end
   end
 end
