@@ -16,6 +16,7 @@ module BoxalinoPackage
     @bundleChooseRequests = Array.new
     @bundleRequests = nil
 
+    @choiceIdOverwrite = "owbx_choice_id"
     VISITOR_COOKIE_TIME = 31536000
     @_timeout = 2
     @requestContextParameters = Hash.new
@@ -114,7 +115,6 @@ module BoxalinoPackage
       @requestMap = requestMap
     end
 
-    @choiceIdOverwrite = "owbx_choice_id"
     def getChoiceIdOverwrite
       if (@requestMap.has_key?(:@choiceIdOverwrite) == true)
         return @requestMap[@choiceIdOverwrite]
@@ -158,7 +158,6 @@ module BoxalinoPackage
     end
 
     def getSessionAndProfile
-
       if (@sessionId != nil && @profileId != nil)
         return [@sessionId, @profileId]
       end
@@ -217,7 +216,6 @@ module BoxalinoPackage
     end
 
     def getChoiceRequest(inquiries, requestContext = nil)
-
       choiceRequest = ChoiceRequest.new()
 
       @sessionid = getSessionAndProfile()[0]
@@ -243,7 +241,6 @@ module BoxalinoPackage
       @protocol = @request.protocol
       @hostname = @request.host
       @requesturi = @request.url
-
       if(@hostname == "")
         return ""
       end
@@ -262,7 +259,6 @@ module BoxalinoPackage
       end
     end
 
-
     def addRequestContextParameter(nname, values)
       if (!values.kind_of?(Array))
         values = Array.new([values])
@@ -273,7 +269,6 @@ module BoxalinoPackage
     def resetRequestContextParameter
       @requestContextParameters = Hash.new()
     end
-
 
     def getBasicRequestContextParameters
       @sessionid = getSessionAndProfile()[0]
@@ -358,7 +353,7 @@ module BoxalinoPackage
       jsonEncode = ActiveSupport::JSON
       exceptionMessage = e.to_s
       backtrace = e.backtrace
-      exceptionFull = ["Message", exceptionMessage, "Backtrace", backtrace, "Choice Request", jsonEncode.encode(@choiceRequest), "Extra case", jsonEncode.encode(extra)]
+      exceptionFull = ["Message", exceptionMessage, "Backtrace", backtrace, "Choice Request", jsonEncode.encode(@choiceRequest), "Autocomplete Request", jsonEncode.encode(@p13nrequests), "Extra case", jsonEncode.encode(extra)]
       raise exceptionFull.join("\n")
     end
 
@@ -399,9 +394,17 @@ module BoxalinoPackage
       end
     end
 
-    def p13nchooseAll(choiceRequestBundle)
+    def p13nchooseAll(choiceRequestBundle, responseFallback = true)
       begin
-        bundleChoiceResponse = getP13n(@_timeout).chooseAll(choiceRequestBundle)
+        clientTry = 1
+        begin
+          client = getP13n(@_timeout)
+        rescue Exception => e
+          clientTry = 2
+          client = getP13n(@_timeout)
+        end
+
+        bundleChoiceResponse = client.chooseAll(choiceRequestBundle)
         if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
           jsonEncode = ActiveSupport::JSON
           _tempOutPut = Array.new(['<pre><h1>Bundle Choice Request</h1>'])
@@ -413,7 +416,11 @@ module BoxalinoPackage
         end
         return bundleChoiceResponse
       rescue Exception => e
-        throwCorrectP13nException(e)
+        if(responseFallback)
+          p13nchooseAll(choiceRequestBundle, false)
+        else
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
+        end
       end
     end
 
@@ -596,12 +603,20 @@ module BoxalinoPackage
       request.setDefaultIndexId(getAccount())
     end
 
-    def p13nautocomplete(autocompleteRequest)
+    def p13nautocomplete(autocompleteRequest, responseFallback = true)
       begin
-        choiceResponse = getP13n(@_timeout).choose(autocompleteRequest)
+        clientTry = 1
+        begin
+          client = getP13n(@_timeout)
+        rescue Exception => e
+          clientTry = 2
+          client = getP13n(@_timeout)
+        end
+
+        choiceResponse = client.choose(autocompleteRequest)
         if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
           jsonEncode = ActiveSupport::JSON
-          _tempOutPut = Array.new(['<pre><h1>Autocomplete bundle</h1>'])
+          _tempOutPut = Array.new(['<pre><h1>Autocomplete Request</h1>'])
           _tempOutPut.push(jsonEncode.encode(autocompleteRequest))
           _tempOutPut.push("<br><h1>Choice Response</h1>")
           _tempOutPut.push(jsonEncode.encode(choiceResponse))
@@ -610,7 +625,11 @@ module BoxalinoPackage
         end
         return choiceResponse
       rescue Exception => e
-        throwCorrectP13nException(e)
+        if(responseFallback)
+          p13nautocomplete(autocompleteRequest, false)
+        else
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
+        end
       end
     end
 
@@ -640,12 +659,19 @@ module BoxalinoPackage
       return nil
     end
 
-
-    def  p13nautocompleteAll(requests)
+    def p13nautocompleteAll(requests, responseFallback = true)
       requestBundle = AutocompleteRequestBundle.new()
       requestBundle.requests = requests
       begin
-        choiceResponse = getP13n(@_timeout).autocompleteAll(requestBundle).responses
+        clientTry = 1
+        begin
+          client = getP13n(@_timeout)
+        rescue Exception => e
+          clientTry = 2
+          client = getP13n(@_timeout)
+        end
+
+        choiceResponse = client.autocompleteAll(requestBundle).responses
         if(!@requestMap.nil?)
           if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
             jsonEncode = ActiveSupport::JSON
@@ -659,11 +685,13 @@ module BoxalinoPackage
         end
         return choiceResponse
       rescue Exception => e
-        throwCorrectP13nException(e)
+        if(responseFallback)
+          p13nautocompleteAll(requests, false)
+        else
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
+        end
       end
-
     end
-
 
     def getAutocompleteResponses
       if (@autocompleteResponses.nil?)
