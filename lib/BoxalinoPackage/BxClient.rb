@@ -201,17 +201,17 @@ module BoxalinoPackage
       return @userRecord
     end
 
-    @@transport = nil
+    @transport = nil
     def getP13n(timeout=2, useCurlIfAvailable=true)
       @profileId = getSessionAndProfile()[1]
 
-      if(@@transport == nil)
-        @@transport = Thrift::ReusingHTTPClientTransport.new(@schema+"://"+@host+@uri)
-        @@transport.basic_auth(@p13n_username, @p13n_password)
-        @@transport.set_profile(@profileId)
+      if(@transport == nil)
+        @transport = Thrift::ReusingHTTPClientTransport.new(@schema+"://"+@host+@uri)
+        @transport.basic_auth(@p13n_username, @p13n_password)
+        @transport.set_profile(@profileId)
       end
 
-      client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
+      client = P13nService::Client.new(Thrift::CompactProtocol.new(@transport))
       return client
     end
 
