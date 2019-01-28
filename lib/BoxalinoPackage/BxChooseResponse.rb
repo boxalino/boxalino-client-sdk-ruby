@@ -248,6 +248,9 @@ module BoxalinoPackage
             end
           end
         end
+        if (hits.empty?)
+           return fieldValues
+        end
         hits.each do |item|
           finalFields = fields
           if(finalFields.nil?)
