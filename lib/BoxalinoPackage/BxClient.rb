@@ -202,11 +202,13 @@ module BoxalinoPackage
     end
 
     @@transport = nil
+    @@transport_start = nil
     @updateClient = false
     def getP13n(timeout=2, useCurlIfAvailable=true)
       @profileId = getSessionAndProfile()[1]
 
       if(@@transport == nil || @updateClient)
+        @@transport_start = Time.now
         @@transport = Thrift::ReusingHTTPClientTransport.new(@schema+"://"+@host+@uri)
         @@transport.basic_auth(@p13n_username, @p13n_password)
         @@transport.set_profile(@profileId)
@@ -392,14 +394,16 @@ module BoxalinoPackage
           @updateClient = true
           p13nchoose(choiceRequest, false)
         else
-          throwCorrectP13nException(te, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>true})
+          transport_end = Time.now
+          throwCorrectP13nException(te, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>true, "transport_age"=>transport_end-@@transport_start})
         end
       rescue Exception => e
         if(responseFallback)
           @updateClient = true
           p13nchoose(choiceRequest, false)
         else
-          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>false})
+          transport_end = Time.now
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>false, "transport_age"=>transport_end-@@transport_start})
         end
       end
     end
