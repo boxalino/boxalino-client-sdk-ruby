@@ -358,7 +358,6 @@ module BoxalinoPackage
       raise exceptionFull.join("\n")
     end
 
-    @callTry = 1
     def p13nchoose(choiceRequest, responseFallback = true)
       begin
         clientTry = 1
@@ -390,19 +389,17 @@ module BoxalinoPackage
         return choiceResponse
       rescue Timeout::Error => te
         if(responseFallback)
-          @callTry+=1
           @updateClient = true
           p13nchoose(choiceRequest, false)
         else
-          throwCorrectP13nException(te, {"attempt"=>@callTry, "client try"=>clientTry, "timeout-exception"=>true})
+          throwCorrectP13nException(te, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>true})
         end
       rescue Exception => e
         if(responseFallback)
-          @callTry+=1
           @updateClient = true
           p13nchoose(choiceRequest, false)
         else
-          throwCorrectP13nException(e, {"attempt"=>@callTry, "client try"=>clientTry, "timeout-exception"=>false})
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>false})
         end
       end
     end
@@ -431,11 +428,10 @@ module BoxalinoPackage
         return bundleChoiceResponse
       rescue Exception => e
         if(responseFallback)
-          @callTry+=1
           @updateClient = true
           p13nchooseAll(choiceRequestBundle, false)
         else
-          throwCorrectP13nException(e, {"attempt"=>@callTry, "client try"=>clientTry})
+          throwCorrectP13nException(e, {"attempt"=>@2, "client try"=>clientTry})
         end
       end
     end
@@ -643,11 +639,10 @@ module BoxalinoPackage
         return choiceResponse
       rescue Exception => e
         if(responseFallback)
-          @callTry+=1
           @updateClient = true
           p13nautocomplete(autocompleteRequest, false)
         else
-          throwCorrectP13nException(e, {"attempt"=>@callTry, "client try"=>clientTry})
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
         end
       end
     end
@@ -706,11 +701,10 @@ module BoxalinoPackage
         return choiceResponse
       rescue Exception => e
         if(responseFallback)
-          @callTry+=1
           @updateClient = true
           p13nautocompleteAll(requests, false)
         else
-          throwCorrectP13nException(e, {"attempt"=>@callTry, "client try"=>clientTry})
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
         end
       end
     end
