@@ -218,6 +218,10 @@ module BoxalinoPackage
       return client
     end
 
+    def getTransportAge
+      return Time.now-@@transport_start
+    end
+
     def getChoiceRequest(inquiries, requestContext = nil)
       choiceRequest = ChoiceRequest.new()
 
@@ -394,16 +398,14 @@ module BoxalinoPackage
           @updateClient = true
           p13nchoose(choiceRequest, false)
         else
-          transport_end = Time.now
-          throwCorrectP13nException(te, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>true, "transport_age"=>transport_end-@@transport_start})
+          throwCorrectP13nException(te, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>true, "transport_age"=> getTransportAge})
         end
       rescue Exception => e
         if(responseFallback)
           @updateClient = true
           p13nchoose(choiceRequest, false)
         else
-          transport_end = Time.now
-          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>false, "transport_age"=>transport_end-@@transport_start})
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry, "timeout-exception"=>false, "transport_age"=> getTransportAge})
         end
       end
     end
