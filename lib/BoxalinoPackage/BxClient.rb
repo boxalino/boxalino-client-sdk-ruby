@@ -437,7 +437,7 @@ module BoxalinoPackage
           @updateClient = true
           p13nchooseAll(choiceRequestBundle, false)
         else
-          throwCorrectP13nException(e, {"attempt"=>@2, "client try"=>clientTry})
+          throwCorrectP13nException(e, {"attempt"=>2, "client try"=>clientTry})
         end
       end
     end
