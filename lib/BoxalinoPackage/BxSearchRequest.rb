@@ -5,8 +5,11 @@ module BoxalinoPackage
 		    if (choiceId == nil) 
 				choiceId = 'search'
 			end
-			  _bxRequest = super(language, choiceId, max, 0)
-				setQueryText(queryText)
+			if(queryText.nil?)
+			    choiceId = 'navigation'
+			end
+			 _bxRequest = super(language, choiceId, max, 0)
+			 setQueryText(queryText)
 		end
 		
 	end

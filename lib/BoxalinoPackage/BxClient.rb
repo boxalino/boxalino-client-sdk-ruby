@@ -9,8 +9,8 @@ module BoxalinoPackage
     require 'BoxalinoPackage/BxChooseResponse'
     require 'BoxalinoPackage/BxAutocompleteResponse'
     @isTest = nil
-    @autocompleteRequests = nil
-    @autocompleteResponses = nil
+    @autocompleteRequests = Hash.new
+    @autocompleteResponses = Hash.new
 
     @chooseResponses = nil
     @bundleChooseRequests = Array.new
