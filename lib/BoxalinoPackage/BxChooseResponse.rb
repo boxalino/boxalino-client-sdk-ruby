@@ -252,6 +252,8 @@ module BoxalinoPackage
            return fieldValues
         end
         hits.each do |item|
+          next if item.values['id'].nil?
+
           finalFields = fields
           if(finalFields.nil?)
             finalFields = item.values.keys
