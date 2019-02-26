@@ -7,6 +7,7 @@ module BoxalinoPackage
 			end
 			if(queryText.nil?)
 			    choiceId = 'navigation'
+			    queryText = ""
 			end
 			 _bxRequest = super(language, choiceId, max, 0)
 			 setQueryText(queryText)

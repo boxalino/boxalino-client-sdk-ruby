@@ -8,6 +8,7 @@ module BoxalinoPackage
     require 'base64'
     require 'BoxalinoPackage/BxChooseResponse'
     require 'BoxalinoPackage/BxAutocompleteResponse'
+
     @isTest = nil
     @autocompleteRequests = Hash.new
     @autocompleteResponses = Hash.new
@@ -590,6 +591,10 @@ module BoxalinoPackage
       elsif (@size = @chooseRequests.size - _chResponseSize)
         choose(chooseAll, @size);
       end
+      if (@chooseResponses.variants.size < 1)
+        raise "no variants in response for request: " + ActiveSupport::JSON.encode(@choiceRequest)
+      end
+
       bxChooseResponse = BxChooseResponse.new(@chooseResponses, @chooseRequests)
       bxChooseResponse.setNotificationMode(getNotificationMode())
       return bxChooseResponse
@@ -663,6 +668,9 @@ module BoxalinoPackage
       @i = -1
 
       tempArrayBxAuto = p13nautocompleteAll(@p13nrequests)
+      if(tempArrayBxAuto.nil?)
+         tempArrayBxAuto = Hash.new
+      end
       @autocompleteResponses = tempArrayBxAuto.map { |request| autocompletePartail(request , ++@i) }
     end
 
