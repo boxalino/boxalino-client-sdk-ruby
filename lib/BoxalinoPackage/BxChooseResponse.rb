@@ -135,7 +135,7 @@ module BoxalinoPackage
 
     def getVariantSearchResult(variant, considerRelaxation=true, maxDistance=10, discardIfSubPhrases = true)
       searchResult = variant.searchResult
-      if(considerRelaxation && !searchResult.totalHitCount.nil? && searchResult.totalHitCount == 0 && !(discardIfSubPhrases && areThereSubPhrases()))
+      if(considerRelaxation && !searchResult&.totalHitCount.nil? && searchResult&.totalHitCount == 0 && !(discardIfSubPhrases && areThereSubPhrases()))
         correctedResult = getFirstPositiveSuggestionSearchResult(variant, maxDistance)
       end
       return !correctedResult.nil? ? correctedResult : searchResult

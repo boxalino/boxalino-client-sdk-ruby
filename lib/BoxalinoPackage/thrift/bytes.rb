@@ -78,7 +78,7 @@ module Thrift
       def self.convert_to_utf8_byte_buffer(string)
         if string.encoding != Encoding::UTF_8
           # transcode to UTF-8
-          string = string.encode(Encoding::UTF_8)
+          string = string.to_s.force_encoding(Encoding::UTF_8)
         else
           # encoding is already UTF-8, but a duplicate is needed
           string = string.dup
