@@ -591,7 +591,7 @@ module BoxalinoPackage
       elsif (@size = @chooseRequests.size - _chResponseSize)
         choose(chooseAll, @size);
       end
-      if (@chooseResponses.variants.nil? || @chooseResponses.variants&.size.to_i < 1)
+      if (@chooseResponses.variants.nil?)
         raise "no variants in response for request: " + ActiveSupport::JSON.encode(@choiceRequest)
       end
 

@@ -11,19 +11,19 @@ require 'stringio'
 module Thrift
   class ReusingHTTPClientTransport < BaseTransport
 
-    @timeout = 1000
+    @timeout = 3000
     def initialize(url, opts = {})
       @url = url
       @headers = {'Content-Type' => 'application/x-thrift'}
       @outbuf = Bytes.empty_byte_buffer
       @client = HTTPClient.new
       @client.connect_timeout = @timeout
-      @client.receive_timeout = 200
+      @client.connect_retry = 2
     end
 
     def set_connection_timeout(timeout)
       @timeout = timeout
-      @client.connection_timeout = timeout
+      @client.connect_timeout = timeout
     end
 
     def set_receive_timeout(timeout)
