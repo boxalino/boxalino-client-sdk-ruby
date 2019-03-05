@@ -763,5 +763,13 @@ module BoxalinoPackage
       return final
     end
 
+    def getSystemRequestId
+       if (requestContextParameters.key?('_system_request_id'))
+          return @requestContextParameters['_system_request_id'][0]
+       end
+
+       return nil
+    end
+
   end
 end
