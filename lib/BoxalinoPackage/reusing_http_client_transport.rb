@@ -18,7 +18,8 @@ module Thrift
       @outbuf = Bytes.empty_byte_buffer
       @client = HTTPClient.new
       @client.connect_timeout = @timeout
-      @client.connect_retry = 2
+      @client.keep_alive_timeout = 30
+      @client.protocol_version = "HTTP/1.1"
     end
 
     def set_connection_timeout(timeout)
