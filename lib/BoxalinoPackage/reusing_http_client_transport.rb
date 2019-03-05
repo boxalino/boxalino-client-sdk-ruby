@@ -31,6 +31,10 @@ module Thrift
       @client.receive_timeout = timeout
     end
 
+    def set_keep_alive_timeout(timeout)
+      @client.keep_alive_timeout = timeout
+    end
+
     def basic_auth(user, pwd)
       @client.set_auth(@url, user, pwd)
     end
