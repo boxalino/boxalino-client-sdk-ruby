@@ -19,7 +19,10 @@ module BoxalinoPackage
 
     @choiceIdOverwrite = "owbx_choice_id"
     VISITOR_COOKIE_TIME = 31536000
+    BXL_UUID_REQUEST = "_system_requestid";
     @_timeout = 2
+    @_keepAliveTimeout = 30
+    @_receiveTimeout = nil
     @requestContextParameters = Hash.new
 
     @sessionId = nil
@@ -82,7 +85,7 @@ module BoxalinoPackage
         addToRequestMap(key, value)
       end
 
-      addRequestContextParameter("_system_requestid", SecureRandom.uuid)
+      addRequestContextParameter(BXL_UUID_REQUEST, SecureRandom.uuid)
     end
 
     def setCookieContainer(cook)
@@ -205,20 +208,26 @@ module BoxalinoPackage
     @@transport = nil
     @@transport_start = nil
     @updateClient = false
-    def getP13n(timeout=2, useCurlIfAvailable=true)
-      @profileId = getSessionAndProfile()[1]
+    def getP13n
+        @profileId = getSessionAndProfile()[1]
 
-      if(@@transport == nil || @updateClient)
-        @@transport_start = Time.now
-        @@transport = Thrift::ReusingHTTPClientTransport.new(@schema+"://"+@host+@uri)
-        @@transport.basic_auth(@p13n_username, @p13n_password)
-        @@transport.set_profile(@profileId)
-        @updateClient = false
+        if(@@transport.nil? || @updateClient)
+          @@transport_start = Time.now
+          @@transport = HTTPClient.new
+          @@transport.connect_timeout = @_timeout
+          @@transport.keep_alive_timeout = @_keepAliveTimeout
+          @@transport.protocol_version = "HTTP/1.1"
+          @updateClient = false
+        end
+
+        @reusingTransport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @@transport)
+        @reusingTransport.basic_auth(@p13n_username, @p13n_password)
+        @reusingTransport.set_profile(@profileId)
+
+        client = P13nService::Client.new(Thrift::CompactProtocol.new(@reusingTransport))
+
+        return client
       end
-
-      client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
-      return client
-    end
 
     def getTransportAge
       return Time.now-@@transport_start
@@ -370,11 +379,11 @@ module BoxalinoPackage
       begin
         clientTry = 1
         begin
-          client = getP13n(@_timeout)
+          client = getP13n
         rescue Exception => e
           clientTry = 2
           @updateClient = true
-          client = getP13n(@_timeout)
+          client = getP13n
         end
 
         choiceResponse = client.choose(choiceRequest)
@@ -416,11 +425,11 @@ module BoxalinoPackage
       begin
         clientTry = 1
         begin
-          client = getP13n(@_timeout)
+          client = getP13n
         rescue Exception => e
           clientTry = 2
           @updateClient = true
-          client = getP13n(@_timeout, true, true)
+          client = getP13n
         end
 
         bundleChoiceResponse = client.chooseAll(choiceRequestBundle)
@@ -631,11 +640,11 @@ module BoxalinoPackage
       begin
         clientTry = 1
         begin
-          client = getP13n(@_timeout)
+          client = getP13n
         rescue Exception => e
           clientTry = 2
           @updateClient = true
-          client = getP13n(@_timeout, true, true)
+          client = getP13n
         end
 
         choiceResponse = client.choose(autocompleteRequest)
@@ -694,11 +703,11 @@ module BoxalinoPackage
       begin
         clientTry = 1
         begin
-          client = getP13n(@_timeout)
+          client = getP13n
         rescue Exception => e
           clientTry = 2
           @updateClient = true
-          client = getP13n(@_timeout, true, true)
+          client = getP13n
         end
 
         choiceResponse = client.autocompleteAll(requestBundle).responses
@@ -765,11 +774,23 @@ module BoxalinoPackage
     end
 
     def getSystemRequestId
-       if (requestContextParameters.key?('_system_request_id'))
-          return @requestContextParameters['_system_request_id'][0]
+       if (requestContextParameters.key?(BXL_UUID_REQUEST))
+          return @requestContextParameters[BXL_UUID_REQUEST][0]
        end
 
        return nil
+    end
+
+    def set_connection_timeout(timeout)
+       @_timeout = timeout
+    end
+
+    def set_receive_timeout(timeout)
+      @_receiveTimeout = timeout
+    end
+
+    def set_keep_alive_timeout(timeout)
+      @_keepAliveTimeout = timeout
     end
 
   end

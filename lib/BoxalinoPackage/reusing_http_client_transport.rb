@@ -9,30 +9,13 @@ require 'uri'
 require 'stringio'
 
 module Thrift
-  class ReusingHTTPClientTransport < BaseTransport
+  class ReusingHttpClientTransport < BaseTransport
 
-    @timeout = 3000
-    def initialize(url, opts = {})
+    def initialize(url, client)
       @url = url
       @headers = {'Content-Type' => 'application/x-thrift'}
       @outbuf = Bytes.empty_byte_buffer
-      @client = HTTPClient.new
-      @client.connect_timeout = @timeout
-      @client.keep_alive_timeout = 30
-      @client.protocol_version = "HTTP/1.1"
-    end
-
-    def set_connection_timeout(timeout)
-      @timeout = timeout
-      @client.connect_timeout = timeout
-    end
-
-    def set_receive_timeout(timeout)
-      @client.receive_timeout = timeout
-    end
-
-    def set_keep_alive_timeout(timeout)
-      @client.keep_alive_timeout = timeout
+      @client = client
     end
 
     def basic_auth(user, pwd)
