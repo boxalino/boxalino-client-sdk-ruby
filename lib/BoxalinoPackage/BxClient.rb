@@ -216,9 +216,9 @@ module BoxalinoPackage
             @updateClient = false
             @@transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @@transport)
             @@transport.basic_auth(@p13n_username, @p13n_password)
-            @@transport.set_profile(@profileId)
         end
 
+        @@transport.set_profile(@profileId)
         client = P13nService::Client.new(Thrift::CompactProtocol.new(@reusingTransport))
         return client
       end
