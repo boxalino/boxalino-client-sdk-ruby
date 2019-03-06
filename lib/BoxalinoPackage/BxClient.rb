@@ -212,25 +212,19 @@ module BoxalinoPackage
         @profileId = getSessionAndProfile()[1]
 
         if(@@transport.nil? || @updateClient)
-          @@transport_start = Time.now
-          @@transport = HTTPClient.new
-          @@transport.connect_timeout = @_timeout
-          @@transport.keep_alive_timeout = @_keepAliveTimeout
-          @@transport.protocol_version = "HTTP/1.1"
-          @updateClient = false
+            @@transport_start = Time.now
+            @updateClient = false
+            @@transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @@transport)
+            @@transport.basic_auth(@p13n_username, @p13n_password)
+            @@transport.set_profile(@profileId)
         end
 
-        @reusingTransport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @@transport)
-        @reusingTransport.basic_auth(@p13n_username, @p13n_password)
-        @reusingTransport.set_profile(@profileId)
-
         client = P13nService::Client.new(Thrift::CompactProtocol.new(@reusingTransport))
-
         return client
       end
 
     def getTransportAge
-      return Time.now-@@transport_start
+      return Time.now - @@transport_start.to_i
     end
 
     def getChoiceRequest(inquiries, requestContext = nil)
@@ -774,7 +768,7 @@ module BoxalinoPackage
     end
 
     def getSystemRequestId
-       if (requestContextParameters.key?(BXL_UUID_REQUEST))
+       if (@requestContextParameters.key?(BXL_UUID_REQUEST))
           return @requestContextParameters[BXL_UUID_REQUEST][0]
        end
 
