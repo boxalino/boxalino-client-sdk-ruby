@@ -205,26 +205,26 @@ module BoxalinoPackage
       return @userRecord
     end
 
-    @@transport = nil
-    @@transport_start = nil
+    @transport = nil
+    @transport_start = nil
     @updateClient = false
     def getP13n
         @profileId = getSessionAndProfile()[1]
 
-        if(@@transport.nil? || @updateClient)
-            @@transport_start = Time.now
+        if(@transport.nil? || @updateClient)
+            @transport_start = Time.now
             @updateClient = false
-            @@transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @@transport)
-            @@transport.basic_auth(@p13n_username, @p13n_password)
-            @@transport.set_profile(@profileId)
+            @transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @transport)
+            @transport.basic_auth(@p13n_username, @p13n_password)
+            @transport.set_profile(@profileId)
         end
 
-        client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
+        client = P13nService::Client.new(Thrift::CompactProtocol.new(@transport))
         return client
       end
 
     def getTransportAge
-      return Time.now - @@transport_start.to_i
+      return Time.now - @transport_start.to_i
     end
 
     def getChoiceRequest(inquiries, requestContext = nil)
