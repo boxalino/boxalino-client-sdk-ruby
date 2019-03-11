@@ -530,6 +530,9 @@ module BoxalinoPackage
       facetValues = Hash.new
       if(facetResponse.values)
         facetResponse.values.each do |facetValue|
+          if(facetValue.stringValue.nil?)
+            next
+          end
           newFacetType = OpenStruct.new
           newFacetType.stringValue = facetValue.stringValue
           newFacetType.hitCount = facetValue.hitCount
@@ -556,6 +559,9 @@ module BoxalinoPackage
 
       if(@facets[fieldName]['selectedValues'].kind_of?(Array))
         @facets[fieldName]['selectedValues'].each do |value|
+          if(value.nil?)
+            next
+          end
           if(facetValues[value] == nil)
             newValue = OpenStruct.new
             newValue.stringValue = value

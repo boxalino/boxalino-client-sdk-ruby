@@ -23,6 +23,7 @@ module BoxalinoPackage
     @_timeout = 2
     @_keepAliveTimeout = 30
     @_receiveTimeout = nil
+    @_connectionPool = false
     @requestContextParameters = Hash.new
 
     @sessionId = nil
@@ -39,6 +40,7 @@ module BoxalinoPackage
     @CustomCookies = nil
     @apiKey = nil
     @apiSecret = nil
+
 
     def initialize(account, password, domain, isDev=false, host=nil, request=nil, params=Hash.new, port=nil, uri=nil, schema=nil, p13n_username=nil, p13n_password=nil, apiKey=nil, apiSecret=nil)
       @account = account
@@ -214,7 +216,12 @@ module BoxalinoPackage
         if(@transport.nil? || @updateClient)
             @transport_start = Time.now
             @updateClient = false
-            @transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, @transport)
+            if(@_connectionPool)
+              @transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, {})
+            else
+              @transport = Thrift::PersistentHttpClientTransport.new(@schema+"://"+@host+@uri, {})
+            end
+
             @transport.basic_auth(@p13n_username, @p13n_password)
             @transport.set_profile(@profileId)
         end
@@ -785,6 +792,10 @@ module BoxalinoPackage
 
     def set_keep_alive_timeout(timeout)
       @_keepAliveTimeout = timeout
+    end
+
+    def set_use_connection_pool(value)
+    @_connectionPool = value
     end
 
   end
