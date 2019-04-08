@@ -121,16 +121,18 @@ module BoxalinoPackage
       tempArray = fieldNames
       finalArray = Array.new
       tempArray.each do |a,b|
-        aValue = getFacetExtraInfo(a['fieldName'], 'order', a['returnedOrder']).to_i
+        if(!a.nil? && !b.nil?)
+          aValue = getFacetExtraInfo(a['fieldName'], 'order', a['returnedOrder']).to_i
+          if(aValue == 0)
+            aValue =  a['returnedOrder']
+            finalArray.push(a)
+          end
 
-        if(aValue == 0)
-          aValue =  a['returnedOrder']
-          finalArray.push(a)
-        end
-        bValue = getFacetExtraInfo(b['fieldName'], 'order', b['returnedOrder']).to_i
-        if(bValue == 0)
-          bValue =  b['returnedOrder']
-          finalArray.push(b)
+          bValue = getFacetExtraInfo(b['fieldName'], 'order', b['returnedOrder']).to_i
+          if(bValue == 0)
+            bValue =  b['returnedOrder']
+            finalArray.push(b)
+          end
         end
       end
     end
