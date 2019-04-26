@@ -27,7 +27,7 @@ module BoxalinoPackage
       @apiKey = apiKey
       @apiSecret = apiSecret
 
-      @host = "track.bx-cloud.com/track"
+      @host = "track.bx-cloud.com"
       @uri = '/p13n.web/p13n'
       @schema = 'https'
       @batchSize =1000
@@ -149,7 +149,6 @@ module BoxalinoPackage
         end
 
         @@transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, {})
-        @@transport.basic_auth(getApiKey(), getApiSecret())
       end
       client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
       return client
