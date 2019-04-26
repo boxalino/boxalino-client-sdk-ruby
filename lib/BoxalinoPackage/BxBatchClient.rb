@@ -148,7 +148,7 @@ module BoxalinoPackage
           @apiSecret = "tkZ8EXfzeZc6SdXZntCU"
         end
 
-        @@transport = Thrift::ReusingHTTPClientTransport.new(@schema+"://"+@host+@uri)
+        @@transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, {})
         @@transport.basic_auth(getApiKey(), getApiSecret())
       end
       client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
