@@ -121,7 +121,7 @@ module BoxalinoPackage
 				if(value.include?(" "))
 					distanceList = Array.new
 					value.strip.split(" ").each do |keyword|
-						distance = levenshtein_distance(queryText, keyword)
+						distance = levenshtein_distance(queryText.to_s.underscore, keyword.to_s.underscore)
 						if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance) && distance != -1)
 							distanceList.push(distance)
 						end
@@ -130,7 +130,7 @@ module BoxalinoPackage
 						relevanceSuggestions[distanceList.sort.first].push(value)
 					end
 				else
-					distance = levenshtein_distance(queryText, value)
+					distance = levenshtein_distance(queryText.to_s.underscore, value.to_s.underscore)
 					if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance)  && distance != -1)
 						relevanceSuggestions[distance].push(value)
 					end
@@ -210,7 +210,9 @@ module BoxalinoPackage
 			searchResult = getResponse().prefixSearchResult
 			if(searchResult.totalHitCount==0)
 				mainSuggestion = getTextualSuggestions.first
-				searchResult = getTextualSuggestionHit(mainSuggestion).searchResult
+				if(!mainSuggestion.nil?)
+					searchResult = getTextualSuggestionHit(mainSuggestion).searchResult
+				end
 			end
 		else
 			searchResult = getTextualSuggestionHit(textualSuggestion).searchResult
