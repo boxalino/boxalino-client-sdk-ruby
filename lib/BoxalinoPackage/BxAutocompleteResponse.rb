@@ -3,10 +3,12 @@ module BoxalinoPackage
 	class BxAutocompleteResponse
 		@response
 		@bxAutocompleteRequest
+		@textualSuggestions
 
 		def initialize(response, bxAutocompleteRequest=nil)
 			@response = response
 			@bxAutocompleteRequest = bxAutocompleteRequest
+			@textualSuggestions = Array.new
 		end
 
 		def getResponse
@@ -22,7 +24,10 @@ module BoxalinoPackage
 			end
 		end
 
-		def getTextualSuggestions
+		def getTextualSuggestions(maxDistance=0.5)
+			if(@textualSuggestions.length > 0)
+				return @textualSuggestions
+			end
 			suggestions = Hash.new
 			response = getResponse
 			if(!response.hits.nil?)
@@ -32,7 +37,8 @@ module BoxalinoPackage
 					end
 				end
 			end
-			return reOrderSuggestions(suggestions)
+			@textualSuggestions = reOrderSuggestions(suggestions, maxDistance)
+			return @textualSuggestions
 		end
 
 		def suggestionIsInGroup(groupName, suggestion)
@@ -68,7 +74,7 @@ module BoxalinoPackage
 		# match position (perfect match or partial match)
 		# partial match
 		# match levenstein distance on prefix/suffix
-		def reOrderSuggestions(suggestions)
+		def reOrderSuggestions(suggestions, maxDistance = 0.5)
 			queryText = getSearchRequest().getQuerytext()
 			groupNames = ['highlighted-beginning', 'highlighted-not-beginning', 'others']
 			groupValues = Hash.new
@@ -90,7 +96,7 @@ module BoxalinoPackage
 			final = Array.new
 			groupValues.each do |order, values|
 				if !values.empty? && !values.nil?
-					final.push(getRelevanceSuggestion(queryText, values))
+					final.push(getRelevanceSuggestion(queryText, values, maxDistance))
 				end
 			end
 
@@ -109,19 +115,25 @@ module BoxalinoPackage
 		end
 
 
-		def getRelevanceSuggestion(queryText, suggestions)
+		def getRelevanceSuggestion(queryText, suggestions, maxDistance=0.5)
 			relevanceSuggestions = Hash.new {|h,k| h[k] = [] }
 			suggestions.each do |value|
 				if(value.include?(" "))
 					distanceList = Array.new
 					value.strip.split(" ").each do |keyword|
 						distance = levenshtein_distance(queryText, keyword)
-						distanceList.push(distance)
+						if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance) && distance != -1)
+							distanceList.push(distance)
+						end
 					end
-					relevanceSuggestions[distanceList.sort.first].push(value)
+					if(distanceList.length>0)
+						relevanceSuggestions[distanceList.sort.first].push(value)
+					end
 				else
 					distance = levenshtein_distance(queryText, value)
-					relevanceSuggestions[distance].push(value)
+					if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance)  && distance != -1)
+						relevanceSuggestions[distance].push(value)
+					end
 				end
 			end
 
@@ -194,9 +206,18 @@ module BoxalinoPackage
 		end
 
 		def getBxSearchResponse(textualSuggestion = nil)
-			searchResult = textualSuggestion.nil? ? getResponse().prefixSearchResult : getTextualSuggestionHit(textualSuggestion).searchResult
-			return BxChooseResponse.new(searchResult, @bxAutocompleteRequest.getBxSearchRequest())
+		if(textualSuggestion.nil?)
+			searchResult = getResponse().prefixSearchResult
+			if(searchResult.totalHitCount==0)
+				mainSuggestion = getTextualSuggestions.first
+				searchResult = getTextualSuggestionHit(mainSuggestion).searchResult
+			end
+		else
+			searchResult = getTextualSuggestionHit(textualSuggestion).searchResult
 		end
+
+		return BxChooseResponse.new(searchResult, @bxAutocompleteRequest.getBxSearchRequest())
+	end
 
 		def getPropertyHits(field)
 			if(!getResponse().propertyResults.nil? || !getResponse().propertyResults.empty?)
