@@ -187,7 +187,7 @@ module BoxalinoPackage
 
 		def getTextualSuggestionHighlighted(suggestion)
 			hit = getTextualSuggestionHit(suggestion)
-			if(hit.highlighted.nil?)
+			if(hit.highlighted.nil? || hit.highlighted.empty?)
 				return suggestion
 			end
 			return hit.highlighted
