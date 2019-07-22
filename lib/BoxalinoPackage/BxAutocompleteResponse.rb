@@ -112,8 +112,17 @@ module BoxalinoPackage
 		def getRelevanceSuggestion(queryText, suggestions)
 			relevanceSuggestions = Hash.new {|h,k| h[k] = [] }
 			suggestions.each do |value|
-				distance = levenshtein_distance(queryText, value)
-				relevanceSuggestions[distance].push(value)
+				if(value.include?(" "))
+					distanceList = Array.new
+					value.strip.split(" ").each do |keyword|
+						distance = levenshtein_distance(queryText, keyword)
+						distanceList.push(distance)
+					end
+					relevanceSuggestions[distanceList.sort.first].push(value)
+				else
+					distance = levenshtein_distance(queryText, value)
+					relevanceSuggestions[distance].push(value)
+				end
 			end
 
 			return relevanceSuggestions.sort.to_h.values
