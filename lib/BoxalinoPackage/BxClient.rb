@@ -390,12 +390,12 @@ module BoxalinoPackage
 
         choiceResponse = client.choose(choiceRequest)
         if(!@requestMap.nil?)
-          if(!@requestMap['dev_bx_debug'].nil? && @requestMap['dev_bx_debug'] == 'true')
+          if(!@requestMap['dev_bx_debug'].nil?)
             addNotification('bxRequest', choiceRequest)
             addNotification('bxResponse', choiceResponse)
           end
 
-          if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true')
+          if(!@requestMap['dev_bx_disp'].nil?)
             jsonEncode = ActiveSupport::JSON
             _tempOutPut = Array.new(['<pre><h1>Choice Request</h1>'])
             _tempOutPut.push(jsonEncode.encode(choiceRequest))
@@ -435,7 +435,7 @@ module BoxalinoPackage
         end
 
         bundleChoiceResponse = client.chooseAll(choiceRequestBundle)
-        if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+        if(!@requestMap['dev_bx_disp'].nil?)
           jsonEncode = ActiveSupport::JSON
           _tempOutPut = Array.new(['<pre><h1>Bundle Choice Request</h1>'])
           _tempOutPut.push(jsonEncode.encode(requestBundle))
@@ -614,7 +614,7 @@ module BoxalinoPackage
 
     def getNotificationMode
       if(!@requestMap.nil?)
-        if(!@requestMap['dev_bx_notifications'].nil? && @requestMap['dev_bx_notifications'] == true)
+        if(!@requestMap['dev_bx_notifications'].nil?)
           return true
         else
           return false
@@ -650,7 +650,7 @@ module BoxalinoPackage
         end
 
         choiceResponse = client.choose(autocompleteRequest)
-        if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+        if(!@requestMap['dev_bx_disp'].nil? )
           jsonEncode = ActiveSupport::JSON
           _tempOutPut = Array.new(['<pre><h1>Autocomplete Request</h1>'])
           _tempOutPut.push(jsonEncode.encode(autocompleteRequest))
@@ -714,7 +714,7 @@ module BoxalinoPackage
 
         choiceResponse = client.autocompleteAll(requestBundle).responses
         if(!@requestMap.nil?)
-          if(!@requestMap['dev_bx_disp'].nil? && @requestMap['dev_bx_disp'] == 'true' )
+          if(!@requestMap['dev_bx_disp'].nil?)
             jsonEncode = ActiveSupport::JSON
             _tempOutPut = Array.new(['<pre><h1>Autocomplete ALL Request bundle</h1>'])
             _tempOutPut.push(jsonEncode.encode(requestBundle))

@@ -24,14 +24,12 @@ module BoxalinoPackage
 
 		def getTextualSuggestions
 			suggestions = Hash.new
-			if(!getResponse().hits.nil?)
-				getResponse().hits.each  do |hit|
-					if(suggestions.any?)
-						if(suggestions[hit.suggestion])
-							next
-						end
+			response = getResponse
+			if(!response.hits.nil?)
+				response.hits.each  do |hit|
+					if(suggestions[hit.suggestion].nil?)
+						suggestions[hit.suggestion] = hit.suggestion
 					end
-					suggestions[hit.suggestion] = hit.suggestion
 				end
 			end
 			return reOrderSuggestions(suggestions)
@@ -42,23 +40,23 @@ module BoxalinoPackage
 			case groupName
 			when 'highlighted-beginning'
 				if (!hit.highlighted.nil?)
-					if( hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) == nil)
+					if(hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) === 0)
 						return true
+					else
+						return false
 					end
-				else
-					return false
 				end
 
 			when 'highlighted-not-beginning'
 				if (!hit.highlighted.nil?)
-					if(hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) != nil)
+					if(hit.highlighted.index(@bxAutocompleteRequest.getHighlightPre()) === 0)
+						return false
+					else
 						return true
 					end
-				else
-					return false
 				end
 			else
-				if hit.highlighted == ""
+				if hit.highlighted.nil?
 					return true
 				else
 					return false
@@ -66,25 +64,22 @@ module BoxalinoPackage
 			end
 		end
 
+		# reorder steps:
+		# match position (perfect match or partial match)
+		# partial match
+		# match levenstein distance on prefix/suffix
 		def reOrderSuggestions(suggestions)
 			queryText = getSearchRequest().getQuerytext()
-
 			groupNames = ['highlighted-beginning', 'highlighted-not-beginning', 'others']
 			groupValues = Hash.new
 			k = 0
-			groupNames.each do | groupName|
-				if(!groupValues.empty?)
-					if (!groupValues.key?(k))
-						groupValues[k] = Hash.new
-					end
-				else
-					groupValues[k] = Hash.new
-				end
+			groupNames.each do |groupName|
+				groupValues[k] = Hash.new
 				if(!suggestions.nil?)
 					suggestionGroup = Array.new
-					suggestions.each do |suggestion|
-						if (suggestionIsInGroup(groupName, suggestion))
-							suggestionGroup.push(suggestion)
+					suggestions.each do |suggestion, suggestionText|
+						if (suggestionIsInGroup(groupName, suggestionText))
+							suggestionGroup.push(suggestionText)
 						end
 					end
 					groupValues[k] = suggestionGroup
@@ -93,14 +88,59 @@ module BoxalinoPackage
 			end
 
 			final = Array.new
-			groupValues.each do |values|
-				if !values.nil?  && !values[1].nil?
-					values[1].each do |value|
-						final.push(value)
+			groupValues.each do |order, values|
+				if !values.empty? && !values.nil?
+					final.push(getRelevanceSuggestion(queryText, values))
+				end
+			end
+
+			finalValues = Array.new
+			final.each do |elements|
+				if(elements.length)
+					elements.each do |element|
+						element.each do |suggestion|
+							finalValues.push(suggestion)
+						end
 					end
 				end
 			end
-			return final
+
+			return finalValues
+		end
+
+
+		def getRelevanceSuggestion(queryText, suggestions)
+			relevanceSuggestions = Hash.new {|h,k| h[k] = [] }
+			suggestions.each do |value|
+				distance = levenshtein_distance(queryText, value)
+				relevanceSuggestions[distance].push(value)
+			end
+
+			return relevanceSuggestions.sort.to_h.values
+		end
+
+		def levenshtein_distance(s, t)
+			m = s.length
+			n = t.length
+			return m if n == 0
+			return n if m == 0
+			d = Array.new(m+1) {Array.new(n+1)}
+
+			(0..m).each {|i| d[i][0] = i}
+			(0..n).each {|j| d[0][j] = j}
+			(1..n).each do |j|
+				(1..m).each do |i|
+					d[i][j] = if s[i-1] == t[j-1]  # adjust index into string
+											d[i-1][j-1]       # no operation required
+										else
+											[ d[i-1][j]+1,    # deletion
+												d[i][j-1]+1,    # insertion
+												d[i-1][j-1]+1,  # substitution
+											].min
+										end
+				end
+			end
+			d[m][n]
 		end
 
 		def getTextualSuggestionHit(suggestion)
