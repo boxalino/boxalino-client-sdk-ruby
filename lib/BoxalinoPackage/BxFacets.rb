@@ -1201,7 +1201,7 @@ module BoxalinoPackage
           properties = prepareFacetsByIconMapExtra(properties, facetField)
           hasValueCorrelation = getFacetExtraInfo(facetField, "facet-value-correlation")
           if(!hasValueCorrelation.nil?)
-            properties = prepareFacetsByValueCorrelation(facetField, properties, hasValueCorrelation)
+            properties = prepareFacetsByValueCorrelation(facetField, properties, hasValueCorrelation, language)
           end
           facetObject = OpenStruct.new
           facetObject.optionValues = properties
@@ -1222,7 +1222,7 @@ module BoxalinoPackage
       return facetsCollection
     end
 
-    def prepareFacetsByValueCorrelation(fieldName, facetValues, valueCorrelationField)
+    def prepareFacetsByValueCorrelation(fieldName, facetValues, valueCorrelationField, language=nil)
       extraValuesInfo = getFacetExtraInfo(fieldName, valueCorrelationField)
       if(extraValuesInfo.nil?)
         return facetValues
@@ -1233,7 +1233,12 @@ module BoxalinoPackage
       if(extraValues.kind_of?(Hash))
         facetValues.each do |k , v|
           if(!extraValues[k].nil?)
-            v.label = extraValues[k]["label"][0]
+            if(language.nil? || language=='de')
+              key ='label'
+            else
+              key = 'label_' + language
+            end
+            v.label = extraValues[k][key][0]
           else
             v.label = k
           end
