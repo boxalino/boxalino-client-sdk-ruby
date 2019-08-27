@@ -114,31 +114,56 @@ module BoxalinoPackage
 			return finalValues
 		end
 
-
 		def getRelevanceSuggestion(queryText, suggestions, maxDistance=0.5)
-			relevanceSuggestions = Hash.new {|h,k| h[k] = [] }
-			suggestions.each do |value|
-				if(value.include?(" "))
-					distanceList = Array.new
-					value.strip.split(" ").each do |keyword|
-						distance = levenshtein_distance(queryText.to_s.underscore, keyword.to_s.underscore)
-						if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance) && distance != -1)
-							distanceList.push(distance)
-						end
-					end
-					if(distanceList.length>0)
-						relevanceSuggestions[distanceList.sort.first].push(value)
-					end
-				else
-					distance = levenshtein_distance(queryText.to_s.underscore, value.to_s.underscore)
-					if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance)  && distance != -1)
-						relevanceSuggestions[distance].push(value)
-					end
-				end
-			end
+            relevanceSuggestions = Hash.new {|h,k| h[k] = [] }
+            suggestions.each do |value|
+                if(value.include?(" "))
+                    distanceList = Array.new
+                    value.strip.split(" ").each do |keyword|
+                        distance = levenshtein_distance(queryText.to_s.underscore, keyword.to_s.underscore)
+                        distanceSubstring = levenshtein_distance(queryText.to_s.underscore, keyword.slice(0, queryText.length).to_s.underscore)
+                        minDistance = [distance, distanceSubstring].min
+                        if((minDistance <= 2 || minDistance.to_f/queryText.length.to_f <= maxDistance)  && minDistance != -1)
+                            distanceList.push(minDistance)
+                        end
+                    end
+                    if(distanceList.length>0)
+                        relevanceSuggestions[distanceList.sort.first].push(value)
+                    end
+                else
+                    distance = levenshtein_distance(queryText.to_s.underscore, value.to_s.underscore)
+                    distanceSubstring = levenshtein_distance(queryText.to_s.underscore, value.slice(0, queryText.length).to_s.underscore)
+                    minDistance = [distance, distanceSubstring].min
+                    if((minDistance <= 2 || minDistance.to_f/queryText.length.to_f <= maxDistance) && minDistance != -1)
+                        relevanceSuggestions[minDistance].push(value)
+                    end
+                end
+            end
 
-			return relevanceSuggestions.sort.to_h.values
-		end
+            return relevanceSuggestions.sort.to_h.values
+        end
+
+        def getLongestCommonSubstring(query, suggestion)
+            commonSubstring = ""
+            lengthQuery = query.length
+            lengthSuggestion = suggestion.length
+            charsQuery = query.split('')
+            charsSuggestion = suggestion.split('')
+            charsQuery.each_with_index do |qC, iQ|
+                charsSuggestion.each_with_index do |sC, iS|
+                    temp=0
+                    match = ""
+                    while ((iQ+temp < lengthQuery) && (iS+temp < lengthSuggestion) && charsQuery[iQ+temp]==charsSuggestion[iS+temp]) do
+                        match = match.concat(charsSuggestion[iS+temp])
+                        temp = temp + 1
+                    end
+                    if (match.length > commonSubstring.length)
+                        commonSubstring = match
+                    end
+                end
+            end
+            return commonSubstring
+        end
 
 		def levenshtein_distance(s, t)
 			m = s.length
