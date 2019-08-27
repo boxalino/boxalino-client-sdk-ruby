@@ -6,8 +6,9 @@ module BoxalinoPackage
 		require 'json'
 
 		@@returnFields = nil
+
 		def initialize(language, choiceId, max=10, min=0)
-			@language, @groupBy, @choiceId, @min, @max, @withRelaxation , @indexId ,	@requestMap , returnFields = Array.new, @indexId
+			@language, @groupBy, @choiceId, @min, @max, @withRelaxation , @indexId, @requestMap, returnFields = Array.new, @indexId
 			@offset = 0
 			@queryText = ""
 			@bxFacets = BxFacets.new
@@ -28,6 +29,8 @@ module BoxalinoPackage
 			if(@max == 0)
 				@max = 1
 			end
+			@groupItemsSort = nil
+            @groupItemsSortAscending = false
 			@withRelaxation = choiceId == 'search'
 			@contextItems = Array.new
 			@@returnFields= Array.new
@@ -195,6 +198,22 @@ module BoxalinoPackage
 			@groupFacets = groupFacets
 		end
 
+        def setGroupItemsSortField(groupItemsSortField)
+            @groupItemsSort = groupItemsSortField
+        end
+
+        def getGroupItemsSortField
+            return @groupItemsSort
+        end
+
+        def setGroupItemsSortAscending(groupItemsSortDir)
+            @groupItemsSortAscending = groupItemsSortDir
+        end
+
+        def getGroupItemsSortAscending
+            return @groupItemsSortAscending
+        end
+
 		def getSimpleSearchQuery
 			searchQuery  = SimpleSearchQuery.new()
 			searchQuery.indexId = getIndexId()
@@ -205,6 +224,10 @@ module BoxalinoPackage
 			searchQuery.queryText = getQuerytext()
 			searchQuery.groupFacets = (@groupFacets == nil ) ? false : @groupFacets
 			searchQuery.groupBy = @groupBy
+			if(!@groupItemsSort.nil?)
+                searchQuery.groupItemsSort = @groupItemsSort
+                searchQuery.groupItemsSortAscending = getGroupItemsSortAscending
+            end
 			if @hitsGroupsAsHits != nil
 				searchQuery.hitsGroupsAsHits = @hitsGroupsAsHits
 			end
