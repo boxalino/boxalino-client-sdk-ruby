@@ -117,22 +117,24 @@ module BoxalinoPackage
 		def getRelevanceSuggestion(queryText, suggestions, maxDistance=0.5)
             relevanceSuggestions = Hash.new {|h,k| h[k] = [] }
             suggestions.each do |value|
-                    distanceList = Array.new
-                    value.strip.split(" ").each do |keyword|
-                        distance = levenshtein_distance(queryText.to_s.underscore, keyword.to_s.underscore)
-                        distanceSubstring = levenshtein_distance(queryText.to_s.underscore, keyword.slice(0, queryText.length).to_s.underscore)
-                        minDistance = [distance, distanceSubstring].max
-                        if((minDistance <= 2 || minDistance.to_f/queryText.length.to_f <= maxDistance)  && minDistance != -1)
-                            distanceList.push(minDistance)
-                        end
-                    end
-                    distance = levenshtein_distance(queryText.to_s.underscore, value.to_s.underscore)
-                    if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance) && distance != -1)
+                distanceList = Array.new
+                value.strip.split(" ").each do |keyword|
+                    distance = levenshtein_distance(queryText.to_s.underscore, keyword.to_s.underscore)
+                    distanceSubstring = levenshtein_distance(queryText.to_s.underscore, keyword.slice(0, queryText.length).to_s.underscore)
+                    minDistance = [distance, distanceSubstring].max
+                    if((distance <= 2 || distance.to_f/queryText.length.to_f <= maxDistance)  && distance != -1)
                         distanceList.push(distance)
                     end
-                    if(distanceList.length>0)
-                        relevanceSuggestions[distanceList.sort.first].push(value)
-                    end
+                end
+                distance = levenshtein_distance(queryText.to_s.underscore, value.to_s.underscore)
+                distanceSubstring = levenshtein_distance(queryText.to_s.underscore, value.slice(0, queryText.length).to_s.underscore)
+                minDistance = [distance, distanceSubstring].min
+                if((minDistance <= 2 || minDistance.to_f/queryText.length.to_f <= maxDistance) && minDistance != -1)
+                    distanceList.push(minDistance)
+                end
+                if(distanceList.length>0)
+                    relevanceSuggestions[distanceList.sort.first].push(value)
+                end
             end
             return relevanceSuggestions.sort.to_h.values
         end
