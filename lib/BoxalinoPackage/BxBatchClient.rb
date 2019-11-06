@@ -12,9 +12,10 @@ module BoxalinoPackage
     @isTest = nil
     @batchChooseResponse = nil
 
+    @profileId = nil
     @apiKey = nil
     @apiSecret = nil
-    @@transport = nil
+    @transport = nil
     @schema = 'https'
     @batchRequest = nil
     @batchChooseRequest = nil
@@ -141,16 +142,18 @@ module BoxalinoPackage
     end
 
     def getP13n
-      if(@@transport == nil)
+      if(@transport == nil)
         if(@apiKey.nil? || @apiSecret.nil?)
           @host = "api.bx-cloud.com"
           @apiKey = "boxalino"
           @apiSecret = "tkZ8EXfzeZc6SdXZntCU"
         end
 
-        @@transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, {})
+        @profileId = getProfileId()
+        @transport = Thrift::ReusingHttpClientTransport.new(@schema+"://"+@host+@uri, {})
+        @transport.set_profile(@profileId)
       end
-      client = P13nService::Client.new(Thrift::CompactProtocol.new(@@transport))
+      client = P13nService::Client.new(Thrift::CompactProtocol.new(@transport))
       return client
     end
 
@@ -205,6 +208,11 @@ module BoxalinoPackage
         raise "You have an invalid configuration for with a choice defined, but having no defined strategies. This is a quite unusual case, please contact support@boxalino.com to get support."
       end
       raise e.to_s
+    end
+
+    #the profile ID of the request must be random to secure node-pining
+    def getProfileId
+      return SecureRandom.hex
     end
 
     def addRequestContextParameter(name, values)
